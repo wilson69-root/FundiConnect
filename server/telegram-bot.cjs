@@ -137,225 +137,259 @@ class TelegramBotService {
   }
 
   matchProviders(service, location) {
-    let matches = this.providers.filter(provider => 
-      provider.category.toLowerCase() === service.toLowerCase()
-    );
-
-    if (location) {
-      matches = matches.filter(provider =>
-        provider.location.toLowerCase().includes(location.toLowerCase())
+    try {
+      let matches = this.providers.filter(provider => 
+        provider.category.toLowerCase() === service.toLowerCase()
       );
-    }
 
-    return matches.slice(0, 3);
+      if (location) {
+        matches = matches.filter(provider =>
+          provider.location.toLowerCase().includes(location.toLowerCase())
+        );
+      }
+
+      return matches.slice(0, 3);
+    } catch (error) {
+      console.error('Error matching providers:', error);
+      return [];
+    }
   }
 
   generateQuotation(provider, serviceType) {
-    const baseRate = provider.hourlyRate;
-    const complexity = Math.random() * 0.5 + 0.5;
-    const estimatedCost = Math.round(baseRate * complexity * (2 + Math.random() * 2));
-    
-    return {
-      id: `quote_${provider.id}_${Date.now()}`,
-      providerId: provider.id,
-      providerName: provider.name,
-      service: serviceType,
-      estimatedCost,
-      duration: `${Math.ceil(complexity * 3)} hours`,
-      responseTime: provider.responseTime,
-      rating: provider.rating,
-      location: provider.location
-    };
+    try {
+      const baseRate = provider.hourlyRate;
+      const complexity = Math.random() * 0.5 + 0.5;
+      const estimatedCost = Math.round(baseRate * complexity * (2 + Math.random() * 2));
+      
+      return {
+        id: `quote_${provider.id}_${Date.now()}`,
+        providerId: provider.id,
+        providerName: provider.name,
+        service: serviceType,
+        estimatedCost,
+        duration: `${Math.ceil(complexity * 3)} hours`,
+        responseTime: provider.responseTime,
+        rating: provider.rating,
+        location: provider.location
+      };
+    } catch (error) {
+      console.error('Error generating quotation:', error);
+      return null;
+    }
   }
 
   escapeMarkdown(text) {
-    return text.replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
+    if (!text) return '';
+    return text.toString().replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
   }
 
   async processMessage(message) {
-    const { intent, entities } = this.recognizeIntent(message);
-    const responses = [];
+    try {
+      const { intent, entities } = this.recognizeIntent(message);
+      const responses = [];
 
-    switch (intent) {
-      case 'greeting':
-        responses.push({
-          text: `👋 *Welcome to FundiConnect\\!*\n\n` +
-                `I'm your AI assistant ready to help you find trusted service providers in Kenya\\.\n\n` +
-                `🔧 *Available Services:*\n` +
-                `• Plumbing 🚰\n` +
-                `• Cleaning 🧹\n` +
-                `• Electrical ⚡\n` +
-                `• Beauty 💄\n` +
-                `• Carpentry 🪚\n` +
-                `• Tutoring 📚\n` +
-                `• Masonry 🧱\n\n` +
-                `Just tell me what you need\\! For example:\n` +
-                `"I need a plumber" or "Looking for house cleaning"`,
-          type: 'text',
-          keyboard: [
-            [
-              { text: '🚰 Plumbing', callback_data: 'service_plumbing' },
-              { text: '🧹 Cleaning', callback_data: 'service_cleaning' }
-            ],
-            [
-              { text: '⚡ Electrical', callback_data: 'service_electrical' },
-              { text: '💄 Beauty', callback_data: 'service_beauty' }
-            ],
-            [
-              { text: '🪚 Carpentry', callback_data: 'service_carpentry' },
-              { text: '📚 Tutoring', callback_data: 'service_tutoring' }
-            ],
-            [
-              { text: '🧱 Masonry', callback_data: 'service_masonry' },
-              { text: '🌐 Visit Website', url: 'https://fundiconnect.com' }
-            ]
-          ]
-        });
-        break;
-
-      case 'service_request':
-        const service = entities.service;
-        const location = entities.location;
-        
-        // Find matching providers first
-        const matches = this.matchProviders(service, location);
-        
-        if (matches.length > 0) {
-          const quotations = matches.map(provider => 
-            this.generateQuotation(provider, service)
-          );
-
-          let quotationText = `✨ *Found ${quotations.length} excellent ${this.escapeMarkdown(service)} providers*${location ? ` in ${this.escapeMarkdown(location)}` : ''}\\!\n\n`;
-          
-          const keyboard = [];
-          
-          quotations.forEach((q, index) => {
-            quotationText += `*${index + 1}\\. ${this.escapeMarkdown(q.providerName)}*\n`;
-            quotationText += `💰 KSh ${q.estimatedCost.toLocaleString()} \\(${this.escapeMarkdown(q.duration)}\\)\n`;
-            quotationText += `⭐ ${q.rating} rating \\| ${this.escapeMarkdown(q.responseTime)}\n`;
-            quotationText += `📍 ${this.escapeMarkdown(q.location)}\n\n`;
-            
-            keyboard.push([
-              { text: `📞 Call ${q.providerName}`, callback_data: `call_${q.providerId}` },
-              { text: `📅 Book ${q.providerName}`, callback_data: `book_${q.providerId}` }
-            ]);
-          });
-
-          keyboard.push([
-            { text: '🌐 View All on Website', url: 'https://fundiconnect.com' },
-            { text: '🔄 Search Again', callback_data: 'search_again' }
-          ]);
-
+      switch (intent) {
+        case 'greeting':
           responses.push({
-            text: quotationText + `💡 *Tip:* Click the buttons below to contact or book directly\\!`,
-            type: 'quotation',
-            keyboard: keyboard
-          });
-        } else {
-          responses.push({
-            text: `😔 *No ${this.escapeMarkdown(service)} providers found*${location ? ` in ${this.escapeMarkdown(location)}` : ''}\\.\n\n` +
-                  `Would you like me to:\n` +
-                  `• Expand the search area?\n` +
-                  `• Look for a different service?\n` +
-                  `• Show all available services?`,
+            text: `👋 *Welcome to FundiConnect\\!*\n\n` +
+                  `I'm your AI assistant ready to help you find trusted service providers in Kenya\\.\n\n` +
+                  `🔧 *Available Services:*\n` +
+                  `• Plumbing 🚰\n` +
+                  `• Cleaning 🧹\n` +
+                  `• Electrical ⚡\n` +
+                  `• Beauty 💄\n` +
+                  `• Carpentry 🪚\n` +
+                  `• Tutoring 📚\n` +
+                  `• Masonry 🧱\n\n` +
+                  `Just tell me what you need\\! For example:\n` +
+                  `"I need a plumber" or "Looking for house cleaning"`,
             type: 'text',
             keyboard: [
               [
-                { text: '🔍 Expand Search', callback_data: 'expand_search' },
-                { text: '🔄 Different Service', callback_data: 'search_again' }
+                { text: '🚰 Plumbing', callback_data: 'service_plumbing' },
+                { text: '🧹 Cleaning', callback_data: 'service_cleaning' }
               ],
               [
-                { text: '📋 All Services', callback_data: 'show_services' },
+                { text: '⚡ Electrical', callback_data: 'service_electrical' },
+                { text: '💄 Beauty', callback_data: 'service_beauty' }
+              ],
+              [
+                { text: '🪚 Carpentry', callback_data: 'service_carpentry' },
+                { text: '📚 Tutoring', callback_data: 'service_tutoring' }
+              ],
+              [
+                { text: '🧱 Masonry', callback_data: 'service_masonry' },
                 { text: '🌐 Visit Website', url: 'https://fundiconnect.com' }
               ]
             ]
           });
-        }
-        break;
+          break;
 
-      case 'pricing_inquiry':
-        responses.push({
-          text: `💰 *FundiConnect Pricing Information*\n\n` +
-                `Our rates vary by service and provider:\n\n` +
-                `🚰 *Plumbing:* KSh 1,200 \\- 2,500/hr\n` +
-                `🧹 *Cleaning:* KSh 600 \\- 1,500/hr\n` +
-                `⚡ *Electrical:* KSh 1,500 \\- 3,000/hr\n` +
-                `💄 *Beauty:* KSh 2,000 \\- 5,000/hr\n` +
-                `🪚 *Carpentry:* KSh 1,000 \\- 2,500/hr\n` +
-                `📚 *Tutoring:* KSh 1,500 \\- 3,500/hr\n` +
-                `🧱 *Masonry:* KSh 1,800 \\- 2,800/hr\n\n` +
-                `💡 *Get exact quotes by telling me what service you need\\!*`,
-          type: 'text',
-          keyboard: [
-            [
-              { text: '🔍 Get Quote', callback_data: 'get_quote' },
-              { text: '🌐 View Website', url: 'https://fundiconnect.com' }
-            ]
-          ]
-        });
-        break;
+        case 'service_request':
+          const service = entities.service;
+          const location = entities.location;
+          
+          if (!service) {
+            responses.push({
+              text: `🤖 I'd like to help you find a service provider\\! Could you please specify what service you need?\n\nFor example:\n• "I need a plumber"\n• "Looking for cleaning service"\n• "Need an electrician"`,
+              type: 'text'
+            });
+            break;
+          }
 
-      case 'help':
-        responses.push({
-          text: `🤖 *FundiConnect Help Center*\n\n` +
-                `*How to use this bot:*\n` +
-                `1\\. Tell me what service you need\n` +
-                `2\\. I'll find the best providers\n` +
-                `3\\. Get instant quotations\n` +
-                `4\\. Contact or book directly\n\n` +
-                `*Example messages:*\n` +
-                `• "I need a plumber for leak repair"\n` +
-                `• "Looking for house cleaning in Karen"\n` +
-                `• "Need an electrician urgently"\n\n` +
-                `*Features:*\n` +
-                `✅ AI\\-powered matching\n` +
-                `✅ Instant quotations\n` +
-                `✅ Verified providers\n` +
-                `✅ Real\\-time availability`,
-          type: 'text',
-          keyboard: [
-            [
-              { text: '🔍 Find Service', callback_data: 'search_again' },
-              { text: '💰 View Pricing', callback_data: 'pricing' }
-            ],
-            [
-              { text: '🌐 Visit Website', url: 'https://fundiconnect.com' }
-            ]
-          ]
-        });
-        break;
+          // Find matching providers
+          const matches = this.matchProviders(service, location);
+          
+          if (matches.length > 0) {
+            const quotations = matches.map(provider => 
+              this.generateQuotation(provider, service)
+            ).filter(q => q !== null);
 
-      default:
-        responses.push({
-          text: `🤖 *I'm here to help you find service providers\\!*\n\n` +
-                `Try asking for services like:\n` +
-                `• "I need a plumber"\n` +
-                `• "Looking for house cleaning"\n` +
-                `• "Need an electrician"\n` +
-                `• "Want a makeup artist"\n` +
-                `• "Need a carpenter"\n` +
-                `• "Looking for a tutor"\n` +
-                `• "Need a mason"\n\n` +
-                `What service can I help you find today? 🔍`,
-          type: 'text',
-          keyboard: [
-            [
-              { text: '🚰 Plumbing', callback_data: 'service_plumbing' },
-              { text: '🧹 Cleaning', callback_data: 'service_cleaning' }
-            ],
-            [
-              { text: '⚡ Electrical', callback_data: 'service_electrical' },
-              { text: '💄 Beauty', callback_data: 'service_beauty' }
-            ],
-            [
-              { text: '📚 Tutoring', callback_data: 'service_tutoring' },
-              { text: '🧱 Masonry', callback_data: 'service_masonry' }
+            if (quotations.length > 0) {
+              let quotationText = `✨ *Found ${quotations.length} excellent ${this.escapeMarkdown(service)} providers*${location ? ` in ${this.escapeMarkdown(location)}` : ''}\\!\n\n`;
+              
+              const keyboard = [];
+              
+              quotations.forEach((q, index) => {
+                quotationText += `*${index + 1}\\. ${this.escapeMarkdown(q.providerName)}*\n`;
+                quotationText += `💰 KSh ${q.estimatedCost.toLocaleString()} \\(${this.escapeMarkdown(q.duration)}\\)\n`;
+                quotationText += `⭐ ${q.rating} rating \\| ${this.escapeMarkdown(q.responseTime)}\n`;
+                quotationText += `📍 ${this.escapeMarkdown(q.location)}\n\n`;
+                
+                keyboard.push([
+                  { text: `📞 Call ${q.providerName}`, callback_data: `call_${q.providerId}` },
+                  { text: `📅 Book ${q.providerName}`, callback_data: `book_${q.providerId}` }
+                ]);
+              });
+
+              keyboard.push([
+                { text: '🌐 View All on Website', url: 'https://fundiconnect.com' },
+                { text: '🔄 Search Again', callback_data: 'search_again' }
+              ]);
+
+              responses.push({
+                text: quotationText + `💡 *Tip:* Click the buttons below to contact or book directly\\!`,
+                type: 'quotation',
+                keyboard: keyboard
+              });
+            } else {
+              responses.push({
+                text: `😔 Sorry, I encountered an issue generating quotes\\. Please try again or visit our website: https://fundiconnect\\.com`,
+                type: 'text'
+              });
+            }
+          } else {
+            responses.push({
+              text: `😔 *No ${this.escapeMarkdown(service)} providers found*${location ? ` in ${this.escapeMarkdown(location)}` : ''}\\.\n\n` +
+                    `Would you like me to:\n` +
+                    `• Expand the search area?\n` +
+                    `• Look for a different service?\n` +
+                    `• Show all available services?`,
+              type: 'text',
+              keyboard: [
+                [
+                  { text: '🔍 Expand Search', callback_data: 'expand_search' },
+                  { text: '🔄 Different Service', callback_data: 'search_again' }
+                ],
+                [
+                  { text: '📋 All Services', callback_data: 'show_services' },
+                  { text: '🌐 Visit Website', url: 'https://fundiconnect.com' }
+                ]
+              ]
+            });
+          }
+          break;
+
+        case 'pricing_inquiry':
+          responses.push({
+            text: `💰 *FundiConnect Pricing Information*\n\n` +
+                  `Our rates vary by service and provider:\n\n` +
+                  `🚰 *Plumbing:* KSh 1,200 \\- 2,500/hr\n` +
+                  `🧹 *Cleaning:* KSh 600 \\- 1,500/hr\n` +
+                  `⚡ *Electrical:* KSh 1,500 \\- 3,000/hr\n` +
+                  `💄 *Beauty:* KSh 2,000 \\- 5,000/hr\n` +
+                  `🪚 *Carpentry:* KSh 1,000 \\- 2,500/hr\n` +
+                  `📚 *Tutoring:* KSh 1,500 \\- 3,500/hr\n` +
+                  `🧱 *Masonry:* KSh 1,800 \\- 2,800/hr\n\n` +
+                  `💡 *Get exact quotes by telling me what service you need\\!*`,
+            type: 'text',
+            keyboard: [
+              [
+                { text: '🔍 Get Quote', callback_data: 'get_quote' },
+                { text: '🌐 View Website', url: 'https://fundiconnect.com' }
+              ]
             ]
-          ]
-        });
+          });
+          break;
+
+        case 'help':
+          responses.push({
+            text: `🤖 *FundiConnect Help Center*\n\n` +
+                  `*How to use this bot:*\n` +
+                  `1\\. Tell me what service you need\n` +
+                  `2\\. I'll find the best providers\n` +
+                  `3\\. Get instant quotations\n` +
+                  `4\\. Contact or book directly\n\n` +
+                  `*Example messages:*\n` +
+                  `• "I need a plumber for leak repair"\n` +
+                  `• "Looking for house cleaning in Karen"\n` +
+                  `• "Need an electrician urgently"\n\n` +
+                  `*Features:*\n` +
+                  `✅ AI\\-powered matching\n` +
+                  `✅ Instant quotations\n` +
+                  `✅ Verified providers\n` +
+                  `✅ Real\\-time availability`,
+            type: 'text',
+            keyboard: [
+              [
+                { text: '🔍 Find Service', callback_data: 'search_again' },
+                { text: '💰 View Pricing', callback_data: 'pricing' }
+              ],
+              [
+                { text: '🌐 Visit Website', url: 'https://fundiconnect.com' }
+              ]
+            ]
+          });
+          break;
+
+        default:
+          responses.push({
+            text: `🤖 *I'm here to help you find service providers\\!*\n\n` +
+                  `Try asking for services like:\n` +
+                  `• "I need a plumber"\n` +
+                  `• "Looking for house cleaning"\n` +
+                  `• "Need an electrician"\n` +
+                  `• "Want a makeup artist"\n` +
+                  `• "Need a carpenter"\n` +
+                  `• "Looking for a tutor"\n` +
+                  `• "Need a mason"\n\n` +
+                  `What service can I help you find today? 🔍`,
+            type: 'text',
+            keyboard: [
+              [
+                { text: '🚰 Plumbing', callback_data: 'service_plumbing' },
+                { text: '🧹 Cleaning', callback_data: 'service_cleaning' }
+              ],
+              [
+                { text: '⚡ Electrical', callback_data: 'service_electrical' },
+                { text: '💄 Beauty', callback_data: 'service_beauty' }
+              ],
+              [
+                { text: '📚 Tutoring', callback_data: 'service_tutoring' },
+                { text: '🧱 Masonry', callback_data: 'service_masonry' }
+              ]
+            ]
+          });
+      }
+
+      return responses;
+    } catch (error) {
+      console.error('Error processing message:', error);
+      return [{
+        text: `🤖 Sorry, I encountered an error\\. Please try again or visit our website: https://fundiconnect\\.com`,
+        type: 'text'
+      }];
     }
-
-    return responses;
   }
 }
 
@@ -742,32 +776,47 @@ bot.on('polling_error', (error) => {
   }
 });
 
-// Optional: Create health check server
-const app = express();
-const PORT = process.env.PORT || 3002;
-
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'running', 
-    service: 'FundiConnect Telegram Bot',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    bot_connected: bot ? true : false
+// Find available port for health check server
+const findAvailablePort = (startPort) => {
+  return new Promise((resolve) => {
+    const server = require('net').createServer();
+    server.listen(startPort, () => {
+      const port = server.address().port;
+      server.close(() => resolve(port));
+    });
+    server.on('error', () => {
+      resolve(findAvailablePort(startPort + 1));
+    });
   });
-});
+};
 
-app.get('/status', (req, res) => {
-  res.json({
-    telegram_connected: bot ? true : false,
-    uptime: process.uptime(),
-    memory_usage: process.memoryUsage(),
-    bot_info: bot ? 'Connected' : 'Disconnected'
+// Create health check server with dynamic port
+findAvailablePort(3002).then((PORT) => {
+  const app = express();
+
+  app.get('/health', (req, res) => {
+    res.json({ 
+      status: 'running', 
+      service: 'FundiConnect Telegram Bot',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      bot_connected: bot ? true : false
+    });
   });
-});
 
-app.listen(PORT, () => {
-  console.log(`🌐 Health check server running on port ${PORT}`);
-  console.log(`📊 Visit http://localhost:${PORT}/health for status`);
+  app.get('/status', (req, res) => {
+    res.json({
+      telegram_connected: bot ? true : false,
+      uptime: process.uptime(),
+      memory_usage: process.memoryUsage(),
+      bot_info: bot ? 'Connected' : 'Disconnected'
+    });
+  });
+
+  app.listen(PORT, () => {
+    console.log(`🌐 Health check server running on port ${PORT}`);
+    console.log(`📊 Visit http://localhost:${PORT}/health for status`);
+  });
 });
 
 console.log('✅ FundiConnect Telegram Bot setup complete!');
@@ -788,5 +837,5 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
-  process.exit(1);
+  // Don't exit immediately, let the bot continue running
 });
