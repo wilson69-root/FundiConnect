@@ -217,12 +217,7 @@ class TelegramBotService {
         const service = entities.service;
         const location = entities.location;
         
-        responses.push({
-          text: `🔍 *Searching for ${this.escapeMarkdown(service)} providers*${location ? ` in ${this.escapeMarkdown(location)}` : ''}\\.\\.\\.\n\n` +
-                `Please wait while I find the best matches for you\\! ⏳`,
-          type: 'text'
-        });
-
+        // Find matching providers first
         const matches = this.matchProviders(service, location);
         
         if (matches.length > 0) {
@@ -230,7 +225,7 @@ class TelegramBotService {
             this.generateQuotation(provider, service)
           );
 
-          let quotationText = `✨ *Found ${quotations.length} excellent ${this.escapeMarkdown(service)} providers\\!*\n\n`;
+          let quotationText = `✨ *Found ${quotations.length} excellent ${this.escapeMarkdown(service)} providers*${location ? ` in ${this.escapeMarkdown(location)}` : ''}\\!\n\n`;
           
           const keyboard = [];
           
@@ -501,49 +496,60 @@ bot.on('message', async (msg) => {
     // Show typing indicator
     await bot.sendChatAction(chatId, 'typing');
     
-    // Add small delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     // Process with bot service
     const responses = await botService.processMessage(text);
     
-    // Send responses
-    for (const response of responses) {
-      const options = { 
-        parse_mode: 'MarkdownV2',
-        disable_web_page_preview: true
-      };
+    console.log(`🔄 Generated ${responses.length} responses for ${firstName}`);
+    
+    // Send responses with proper error handling
+    for (let i = 0; i < responses.length; i++) {
+      const response = responses[i];
       
-      if (response.keyboard) {
-        options.reply_markup = {
-          inline_keyboard: response.keyboard
+      try {
+        const options = { 
+          parse_mode: 'MarkdownV2',
+          disable_web_page_preview: true
         };
-      }
-      
-      await bot.sendMessage(chatId, response.text, options);
-      
-      // Small delay between messages
-      if (responses.length > 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        if (response.keyboard) {
+          options.reply_markup = {
+            inline_keyboard: response.keyboard
+          };
+        }
+        
+        await bot.sendMessage(chatId, response.text, options);
+        console.log(`✅ Sent response ${i + 1}/${responses.length} to ${firstName}`);
+        
+        // Small delay between messages
+        if (i < responses.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+      } catch (sendError) {
+        console.error(`❌ Error sending response ${i + 1}:`, sendError.message);
+        
+        // Try sending without markdown as fallback
+        try {
+          const fallbackText = response.text.replace(/\\/g, '');
+          await bot.sendMessage(chatId, fallbackText);
+          console.log(`✅ Sent fallback response ${i + 1} to ${firstName}`);
+        } catch (fallbackError) {
+          console.error(`❌ Fallback also failed for response ${i + 1}:`, fallbackError.message);
+        }
       }
     }
     
-    console.log(`✅ Responded to ${firstName}`);
+    console.log(`✅ Completed responding to ${firstName}`);
     
   } catch (error) {
     console.error('❌ Error processing message:', error);
     
     try {
       await bot.sendMessage(chatId, 
-        '🤖 Sorry, I encountered an error\\. Please try again or visit our website: https://fundiconnect\\.com',
-        { parse_mode: 'MarkdownV2' }
+        '🤖 Sorry, I encountered an error. Please try again or visit our website: https://fundiconnect.com'
       );
     } catch (replyError) {
       console.error('❌ Error sending error message:', replyError);
-      // Fallback without markdown
-      await bot.sendMessage(chatId, 
-        '🤖 Sorry, I encountered an error. Please try again or visit our website: https://fundiconnect.com'
-      );
     }
   }
 });
@@ -558,9 +564,16 @@ bot.on('callback_query', async (callbackQuery) => {
   console.log(`🔘 Button pressed by ${firstName}: ${data}`);
   
   try {
+    // Answer the callback query immediately
+    await bot.answerCallbackQuery(callbackQuery.id, {
+      text: '✅ Processing your request...'
+    });
+    
     if (data.startsWith('service_')) {
       const service = data.replace('service_', '');
       const serviceMessage = `I need ${service}`;
+      
+      console.log(`🔄 Processing service request: ${serviceMessage}`);
       
       const responses = await botService.processMessage(serviceMessage);
       
@@ -701,11 +714,6 @@ bot.on('callback_query', async (callbackQuery) => {
         await bot.sendMessage(chatId, response.text, options);
       }
     }
-    
-    // Answer the callback query
-    await bot.answerCallbackQuery(callbackQuery.id, {
-      text: '✅ Processing your request...'
-    });
     
   } catch (error) {
     console.error('❌ Error handling callback:', error);
