@@ -8,10 +8,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "whatsapp-bot": "node server/whatsapp-bot.js",
-    "telegram-bot": "node server/telegram-bot.js",
+    "whatsapp-bot": "node server/whatsapp-bot.cjs",
+    "telegram-bot": "node server/telegram-bot.cjs",
     "start-bots": "concurrently \"npm run whatsapp-bot\" \"npm run telegram-bot\"",
-    "test-bots": "node server/test-bots.js"
+    "test-bots": "node server/test-bots.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",
