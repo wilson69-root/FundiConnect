@@ -4,6 +4,63 @@ dotenv.config();
 
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
+
+// Process management
+const PID_FILE = path.join(__dirname, '.telegram-bot.pid');
+
+// Check if another instance is running
+function checkExistingInstance() {
+  if (fs.existsSync(PID_FILE)) {
+    try {
+      const existingPid = fs.readFileSync(PID_FILE, 'utf8').trim();
+      
+      // Check if process is still running
+      try {
+        process.kill(existingPid, 0); // Signal 0 just checks if process exists
+        console.log('❌ Another Telegram bot instance is already running!');
+        console.log(`🔧 Process ID: ${existingPid}`);
+        console.log('');
+        console.log('💡 To fix this:');
+        console.log('   1. Stop the other instance first');
+        console.log('   2. Or run: npm run stop-bots');
+        console.log('   3. Then restart: npm run telegram-bot');
+        process.exit(1);
+      } catch (e) {
+        // Process doesn't exist, remove stale PID file
+        fs.unlinkSync(PID_FILE);
+        console.log('🧹 Cleaned up stale PID file');
+      }
+    } catch (error) {
+      // PID file is corrupted, remove it
+      fs.unlinkSync(PID_FILE);
+      console.log('🧹 Removed corrupted PID file');
+    }
+  }
+}
+
+// Write current PID to file
+function writePidFile() {
+  try {
+    fs.writeFileSync(PID_FILE, process.pid.toString());
+    console.log(`📝 Bot instance registered with PID: ${process.pid}`);
+  } catch (error) {
+    console.warn('⚠️ Could not write PID file:', error.message);
+  }
+}
+
+// Clean up PID file on exit
+function cleanupPidFile() {
+  try {
+    if (fs.existsSync(PID_FILE)) {
+      fs.unlinkSync(PID_FILE);
+      console.log('🧹 Cleaned up PID file');
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not clean up PID file:', error.message);
+  }
+}
 
 // Enhanced Bot Service for Telegram
 class TelegramBotService {
@@ -393,6 +450,10 @@ class TelegramBotService {
   }
 }
 
+// Check for existing instances before starting
+console.log('🔍 Checking for existing bot instances...');
+checkExistingInstance();
+
 // Initialize bot service
 const botService = new TelegramBotService();
 
@@ -422,13 +483,16 @@ if (!token) {
 console.log('✅ Bot token found!');
 console.log('🚀 Starting FundiConnect Telegram Bot...');
 
-// Create bot instance with error handling
+// Write PID file
+writePidFile();
+
+// Create bot instance with enhanced error handling
 let bot;
 try {
   bot = new TelegramBot(token, { 
     polling: {
-      interval: 300,
-      autoStart: true,
+      interval: 1000,
+      autoStart: false,
       params: {
         timeout: 10
       }
@@ -437,14 +501,49 @@ try {
   console.log('🤖 Bot instance created successfully');
 } catch (error) {
   console.error('❌ Failed to create bot instance:', error.message);
+  cleanupPidFile();
   process.exit(1);
 }
 
-// Test bot connection
-bot.getMe().then((botInfo) => {
+// Start polling with retry logic
+async function startPolling() {
+  try {
+    console.log('🔄 Starting bot polling...');
+    await bot.startPolling();
+    console.log('✅ Bot polling started successfully!');
+  } catch (error) {
+    console.error('❌ Failed to start polling:', error.message);
+    
+    if (error.message.includes('409')) {
+      console.log('');
+      console.log('🔧 Conflict detected - another bot instance is running');
+      console.log('💡 Solutions:');
+      console.log('   1. Wait 30 seconds and try again');
+      console.log('   2. Check for other terminal windows running the bot');
+      console.log('   3. Run: npm run stop-bots');
+      console.log('   4. Restart your terminal');
+      cleanupPidFile();
+      process.exit(1);
+    } else if (error.message.includes('401')) {
+      console.log('🔧 Invalid bot token. Please check your TELEGRAM_BOT_TOKEN in .env file.');
+      cleanupPidFile();
+      process.exit(1);
+    } else {
+      console.log('🔧 Retrying in 5 seconds...');
+      setTimeout(startPolling, 5000);
+    }
+  }
+}
+
+// Test bot connection first
+bot.getMe().then(async (botInfo) => {
   console.log('✅ Bot connected successfully!');
   console.log(`🤖 Bot name: ${botInfo.first_name}`);
   console.log(`📱 Bot username: @${botInfo.username}`);
+  
+  // Start polling after successful connection test
+  await startPolling();
+  
   console.log('💬 Users can now message your bot!');
 }).catch((error) => {
   console.error('❌ Failed to connect to Telegram:', error.message);
@@ -453,6 +552,7 @@ bot.getMe().then((botInfo) => {
   console.log('   1. Check if your bot token is correct');
   console.log('   2. Make sure you have internet connection');
   console.log('   3. Verify the token with @BotFather');
+  cleanupPidFile();
   process.exit(1);
 });
 
@@ -763,16 +863,24 @@ bot.on('callback_query', async (callbackQuery) => {
   }
 });
 
-// Handle polling errors
+// Enhanced polling error handling
 bot.on('polling_error', (error) => {
   console.error('❌ Polling error:', error.message);
   
   if (error.message.includes('409')) {
-    console.log('🔧 Another bot instance might be running. Please stop other instances.');
+    console.log('🔧 Another bot instance is running. Stopping this instance...');
+    cleanupPidFile();
+    process.exit(1);
   } else if (error.message.includes('401')) {
     console.log('🔧 Invalid bot token. Please check your TELEGRAM_BOT_TOKEN in .env file.');
+    cleanupPidFile();
+    process.exit(1);
   } else if (error.message.includes('network')) {
-    console.log('🔧 Network error. Please check your internet connection.');
+    console.log('🔧 Network error. Retrying in 10 seconds...');
+    setTimeout(() => {
+      console.log('🔄 Attempting to restart polling...');
+      startPolling();
+    }, 10000);
   }
 });
 
@@ -800,7 +908,8 @@ findAvailablePort(3002).then((PORT) => {
       service: 'FundiConnect Telegram Bot',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      bot_connected: bot ? true : false
+      bot_connected: bot ? true : false,
+      pid: process.pid
     });
   });
 
@@ -809,7 +918,8 @@ findAvailablePort(3002).then((PORT) => {
       telegram_connected: bot ? true : false,
       uptime: process.uptime(),
       memory_usage: process.memoryUsage(),
-      bot_info: bot ? 'Connected' : 'Disconnected'
+      bot_info: bot ? 'Connected' : 'Disconnected',
+      pid: process.pid
     });
   });
 
@@ -822,14 +932,27 @@ findAvailablePort(3002).then((PORT) => {
 console.log('✅ FundiConnect Telegram Bot setup complete!');
 console.log('🤖 Users can now message your bot to get service provider recommendations');
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down FundiConnect Telegram Bot...');
-  if (bot) {
-    await bot.stopPolling();
+// Enhanced graceful shutdown
+async function gracefulShutdown(signal) {
+  console.log(`\n🛑 Received ${signal}. Shutting down FundiConnect Telegram Bot...`);
+  
+  try {
+    if (bot) {
+      console.log('⏹️ Stopping bot polling...');
+      await bot.stopPolling();
+      console.log('✅ Bot polling stopped');
+    }
+  } catch (error) {
+    console.error('❌ Error stopping bot:', error.message);
   }
+  
+  cleanupPidFile();
+  console.log('👋 Goodbye!');
   process.exit(0);
-});
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
@@ -837,5 +960,6 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
-  // Don't exit immediately, let the bot continue running
+  cleanupPidFile();
+  process.exit(1);
 });

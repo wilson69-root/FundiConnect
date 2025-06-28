@@ -11,6 +11,7 @@
     "whatsapp-bot": "node server/whatsapp-bot.cjs",
     "telegram-bot": "node server/telegram-bot.cjs",
     "start-bots": "concurrently \"npm run whatsapp-bot\" \"npm run telegram-bot\"",
+    "stop-bots": "pkill -f telegram-bot.cjs || pkill -f whatsapp-bot.cjs || echo 'No bot processes found'",
     "test-bots": "node server/test-bots.cjs"
   },
   "dependencies": {
