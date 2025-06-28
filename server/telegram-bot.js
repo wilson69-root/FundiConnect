@@ -363,13 +363,23 @@ class TelegramBotService {
 // Initialize bot service
 const botService = new TelegramBotService();
 
-// Get bot token from environment or use placeholder
+// Load environment variables
+require('dotenv').config();
+
+// Get bot token from environment variable
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
-if (!token || token === 'YOUR_TELEGRAM_BOT_TOKEN') {
-  console.log('❌ Please set TELEGRAM_BOT_TOKEN environment variable');
-  console.log('📱 Get your token from @BotFather on Telegram');
-  console.log('💡 Example: export TELEGRAM_BOT_TOKEN="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"');
+if (!token) {
+  console.log('❌ TELEGRAM_BOT_TOKEN not found in environment variables');
+  console.log('📝 Please add your bot token to the .env file:');
+  console.log('   TELEGRAM_BOT_TOKEN=your_bot_token_here');
+  console.log('');
+  console.log('🤖 To get a bot token:');
+  console.log('   1. Message @BotFather on Telegram');
+  console.log('   2. Send /newbot');
+  console.log('   3. Choose name: FundiConnect Assistant');
+  console.log('   4. Choose username: fundiconnect_bot');
+  console.log('   5. Copy the token to .env file');
   process.exit(1);
 }
 
