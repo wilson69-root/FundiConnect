@@ -1,3 +1,7 @@
+// Load environment variables first
+const dotenv = require('dotenv');
+dotenv.config();
+
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 
@@ -363,30 +367,65 @@ class TelegramBotService {
 // Initialize bot service
 const botService = new TelegramBotService();
 
-// Load environment variables
-require('dotenv').config();
-
 // Get bot token from environment variable
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
+console.log('🔍 Checking for Telegram bot token...');
+
 if (!token) {
-  console.log('❌ TELEGRAM_BOT_TOKEN not found in environment variables');
+  console.log('❌ TELEGRAM_BOT_TOKEN not found!');
+  console.log('');
   console.log('📝 Please add your bot token to the .env file:');
   console.log('   TELEGRAM_BOT_TOKEN=your_bot_token_here');
   console.log('');
   console.log('🤖 To get a bot token:');
-  console.log('   1. Message @BotFather on Telegram');
+  console.log('   1. Open Telegram and search for @BotFather');
   console.log('   2. Send /newbot');
   console.log('   3. Choose name: FundiConnect Assistant');
   console.log('   4. Choose username: fundiconnect_bot');
   console.log('   5. Copy the token to .env file');
+  console.log('');
+  console.log('💡 Example .env file content:');
+  console.log('   TELEGRAM_BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11');
   process.exit(1);
 }
 
-// Create bot instance
-const bot = new TelegramBot(token, { polling: true });
-
+console.log('✅ Bot token found!');
 console.log('🚀 Starting FundiConnect Telegram Bot...');
+
+// Create bot instance with error handling
+let bot;
+try {
+  bot = new TelegramBot(token, { 
+    polling: {
+      interval: 300,
+      autoStart: true,
+      params: {
+        timeout: 10
+      }
+    }
+  });
+  console.log('🤖 Bot instance created successfully');
+} catch (error) {
+  console.error('❌ Failed to create bot instance:', error.message);
+  process.exit(1);
+}
+
+// Test bot connection
+bot.getMe().then((botInfo) => {
+  console.log('✅ Bot connected successfully!');
+  console.log(`🤖 Bot name: ${botInfo.first_name}`);
+  console.log(`📱 Bot username: @${botInfo.username}`);
+  console.log('💬 Users can now message your bot!');
+}).catch((error) => {
+  console.error('❌ Failed to connect to Telegram:', error.message);
+  console.log('');
+  console.log('🔧 Troubleshooting:');
+  console.log('   1. Check if your bot token is correct');
+  console.log('   2. Make sure you have internet connection');
+  console.log('   3. Verify the token with @BotFather');
+  process.exit(1);
+});
 
 // Handle /start command
 bot.onText(/\/start/, async (msg) => {
@@ -396,7 +435,7 @@ bot.onText(/\/start/, async (msg) => {
   console.log(`👋 New user started: ${firstName} (${chatId})`);
   
   try {
-    const responses = await botService.processMessage('/start');
+    const responses = await botService.processMessage('hello');
     
     for (const response of responses) {
       const options = { 
@@ -684,7 +723,15 @@ bot.on('callback_query', async (callbackQuery) => {
 
 // Handle polling errors
 bot.on('polling_error', (error) => {
-  console.error('❌ Polling error:', error);
+  console.error('❌ Polling error:', error.message);
+  
+  if (error.message.includes('409')) {
+    console.log('🔧 Another bot instance might be running. Please stop other instances.');
+  } else if (error.message.includes('401')) {
+    console.log('🔧 Invalid bot token. Please check your TELEGRAM_BOT_TOKEN in .env file.');
+  } else if (error.message.includes('network')) {
+    console.log('🔧 Network error. Please check your internet connection.');
+  }
 });
 
 // Optional: Create health check server
@@ -696,15 +743,17 @@ app.get('/health', (req, res) => {
     status: 'running', 
     service: 'FundiConnect Telegram Bot',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    bot_connected: bot ? true : false
   });
 });
 
 app.get('/status', (req, res) => {
   res.json({
-    telegram_connected: bot.isPolling(),
+    telegram_connected: bot ? true : false,
     uptime: process.uptime(),
-    memory_usage: process.memoryUsage()
+    memory_usage: process.memoryUsage(),
+    bot_info: bot ? 'Connected' : 'Disconnected'
   });
 });
 
@@ -713,13 +762,23 @@ app.listen(PORT, () => {
   console.log(`📊 Visit http://localhost:${PORT}/health for status`);
 });
 
-console.log('✅ FundiConnect Telegram Bot is ready!');
+console.log('✅ FundiConnect Telegram Bot setup complete!');
 console.log('🤖 Users can now message your bot to get service provider recommendations');
-console.log('💡 Bot username: Search for your bot on Telegram');
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down FundiConnect Telegram Bot...');
-  await bot.stopPolling();
+  if (bot) {
+    await bot.stopPolling();
+  }
   process.exit(0);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
 });
