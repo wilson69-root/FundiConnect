@@ -1,12 +1,4 @@
-/*
-  # FundiConnect Database Schema
-
-  1. New Tables
-    - `profiles` - User profiles extending auth.users
-    - `service_categories` - Available service categories
-    - `service_providers` - Provider information and business details
-    - `provider_services` - Services offered by each provider
-    - `provider_availability` - Working hours and availability
+ Working hours and availability
     - `bookings` - Customer bookings and appointments
     - `payments` - Payment transactions and M-Pesa records
     - `reviews` - Customer reviews and ratings
