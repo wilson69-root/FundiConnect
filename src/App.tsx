@@ -154,6 +154,13 @@ function App() {
               <a href="#" className="text-gray-600 hover:text-blue-600 transition-all duration-300 font-medium hover:scale-105">Contact</a>
               <div className="flex items-center space-x-4">
                 <button
+                  onClick={() => setActiveTab('qr-generator')}
+                  className="flex items-center space-x-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium"
+                >
+                  <QrCode className="w-4 h-4" />
+                  <span>QR Generator</span>
+                </button>
+                <button
                   onClick={() => setIsRegistrationModalOpen(true)}
                   className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium"
                 >
@@ -187,6 +194,16 @@ function App() {
                 <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">About</a>
                 <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Contact</a>
                 <div className="flex flex-col space-y-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      setActiveTab('qr-generator');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex items-center justify-center space-x-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-xl font-medium"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    <span>QR Generator</span>
+                  </button>
                   <button
                     onClick={() => {
                       setIsRegistrationModalOpen(true);
@@ -263,13 +280,6 @@ function App() {
                     <QrCode className="w-6 h-6 group-hover:animate-pulse" />
                     <span>QR Code Generator</span>
                   </button>
-                  <button
-                    onClick={() => setIsRegistrationModalOpen(true)}
-                    className="group bg-purple-500 hover:bg-purple-600 text-white px-8 py-4 rounded-2xl font-semibold flex items-center justify-center space-x-3 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl min-w-[200px]"
-                  >
-                    <UserPlus className="w-6 h-6 group-hover:animate-pulse" />
-                    <span>Become a Provider</span>
-                  </button>
                 </div>
               </div>
             </div>
@@ -277,7 +287,7 @@ function App() {
 
           {/* Tab Navigation */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex flex-wrap justify-center space-x-2 bg-white/80 backdrop-blur-lg p-2 rounded-2xl w-fit mx-auto shadow-lg border border-white/20">
+            <div className="flex flex-wrap justify-center gap-2 bg-white/80 backdrop-blur-lg p-2 rounded-2xl w-fit mx-auto shadow-lg border border-white/20">
               <button
                 onClick={() => setActiveTab('browse')}
                 className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
