@@ -31,6 +31,8 @@ export interface BookingData {
   contactPhone: string;
   contactEmail: string;
   totalCost: number;
+  paymentStatus?: 'pending' | 'paid' | 'failed';
+  transactionId?: string;
 }
 
 export interface ChatMessage {
@@ -98,4 +100,17 @@ export interface ProviderProfile extends ServiceProvider {
   registrationDate: Date;
   documentsVerified: boolean;
   backgroundCheckStatus: 'pending' | 'completed' | 'failed';
+}
+
+export interface PaymentTransaction {
+  id: string;
+  bookingId: string;
+  amount: number;
+  method: 'mpesa' | 'card';
+  status: 'pending' | 'completed' | 'failed' | 'cancelled';
+  transactionId?: string;
+  mpesaReceiptNumber?: string;
+  phoneNumber?: string;
+  createdAt: Date;
+  completedAt?: Date;
 }
