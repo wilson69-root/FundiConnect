@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MessageCircle, Users, Star, CheckCircle, Phone, Mail, MapPin, UserPlus, Menu, X, QrCode } from 'lucide-react';
+import { Search, MessageCircle, Users, Star, CheckCircle, Phone, Mail, MapPin, UserPlus, Menu, X, QrCode, Home, Info, HelpCircle, ChevronDown } from 'lucide-react';
 import { ServiceProvider, BookingData, ProviderRegistrationData, ProviderProfile } from './types';
 import { mockProviders, serviceCategories } from './data/mockData';
 import { ProviderCard } from './components/ProviderCard';
@@ -20,6 +20,7 @@ function App() {
   const [currentProvider, setCurrentProvider] = useState<ProviderProfile | null>(null);
   const [providers, setProviders] = useState<ServiceProvider[]>(mockProviders);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showServicesDropdown, setShowServicesDropdown] = useState(false);
 
   const filteredProviders = providers.filter(provider => {
     const matchesSearch = provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -56,6 +57,7 @@ function App() {
 
   const handleCategoryClick = (categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? '' : categoryId);
+    setActiveTab('browse');
   };
 
   const handleProviderRegistration = (registrationData: ProviderRegistrationData) => {
@@ -128,10 +130,18 @@ function App() {
     setActiveTab('dashboard');
   };
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-emerald-50">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-lg shadow-lg border-b border-white/20 sticky top-0 z-40">
+      <header className="bg-white/90 backdrop-blur-lg shadow-lg border-b border-white/20 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -147,12 +157,63 @@ function App() {
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-8">
-              <a href="#" className="text-gray-600 hover:text-blue-600 transition-all duration-300 font-medium hover:scale-105">Services</a>
-              <a href="#" className="text-gray-600 hover:text-blue-600 transition-all duration-300 font-medium hover:scale-105">How it Works</a>
-              <a href="#" className="text-gray-600 hover:text-blue-600 transition-all duration-300 font-medium hover:scale-105">About</a>
-              <a href="#" className="text-gray-600 hover:text-blue-600 transition-all duration-300 font-medium hover:scale-105">Contact</a>
-              <div className="flex items-center space-x-4">
+            <nav className="hidden lg:flex items-center space-x-6">
+              <div className="relative">
+                <button
+                  onClick={() => setShowServicesDropdown(!showServicesDropdown)}
+                  className="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-all duration-300 font-medium hover:scale-105 px-3 py-2 rounded-lg hover:bg-blue-50"
+                >
+                  <span>Services</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showServicesDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showServicesDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                    <div className="px-4 py-2 text-sm font-semibold text-gray-500 border-b border-gray-100">
+                      Available Services
+                    </div>
+                    {serviceCategories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => {
+                          handleCategoryClick(category.id);
+                          setShowServicesDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors flex items-center space-x-3"
+                      >
+                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${category.gradient} flex items-center justify-center`}>
+                          <span className="text-white text-sm">🔧</span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{category.name}</div>
+                          <div className="text-sm text-gray-500">{category.description}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <button
+                onClick={() => scrollToSection('how-it-works')}
+                className="text-gray-600 hover:text-blue-600 transition-all duration-300 font-medium hover:scale-105 px-3 py-2 rounded-lg hover:bg-blue-50"
+              >
+                How it Works
+              </button>
+              <button
+                onClick={() => scrollToSection('about')}
+                className="text-gray-600 hover:text-blue-600 transition-all duration-300 font-medium hover:scale-105 px-3 py-2 rounded-lg hover:bg-blue-50"
+              >
+                About
+              </button>
+              <button
+                onClick={() => scrollToSection('contact')}
+                className="text-gray-600 hover:text-blue-600 transition-all duration-300 font-medium hover:scale-105 px-3 py-2 rounded-lg hover:bg-blue-50"
+              >
+                Contact
+              </button>
+              
+              <div className="flex items-center space-x-3 ml-6 border-l border-gray-200 pl-6">
                 <button
                   onClick={() => setActiveTab('qr-generator')}
                   className="flex items-center space-x-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium"
@@ -162,14 +223,14 @@ function App() {
                 </button>
                 <button
                   onClick={() => setIsRegistrationModalOpen(true)}
-                  className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium"
+                  className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>Join as Provider</span>
                 </button>
                 <button
                   onClick={handleProviderLogin}
-                  className="text-blue-600 hover:text-blue-700 transition-colors font-medium"
+                  className="text-blue-600 hover:text-blue-700 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-blue-50"
                 >
                   Provider Login
                 </button>
@@ -179,7 +240,7 @@ function App() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 text-gray-600 hover:text-blue-600 transition-colors"
+              className="lg:hidden p-2 text-gray-600 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
             >
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -188,11 +249,44 @@ function App() {
           {/* Mobile Navigation */}
           {isMobileMenuOpen && (
             <div className="lg:hidden py-4 border-t border-gray-200 bg-white/95 backdrop-blur-lg">
-              <div className="flex flex-col space-y-4">
-                <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Services</a>
-                <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">How it Works</a>
-                <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">About</a>
-                <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Contact</a>
+              <div className="flex flex-col space-y-3">
+                <div className="border-b border-gray-100 pb-3 mb-3">
+                  <p className="text-sm font-semibold text-gray-500 mb-2">Services</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {serviceCategories.slice(0, 4).map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => {
+                          handleCategoryClick(category.id);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="text-left p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                      >
+                        <div className="text-sm font-medium text-gray-900">{category.name}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => scrollToSection('how-it-works')}
+                  className="text-left text-gray-600 hover:text-blue-600 transition-colors font-medium py-2"
+                >
+                  How it Works
+                </button>
+                <button
+                  onClick={() => scrollToSection('about')}
+                  className="text-left text-gray-600 hover:text-blue-600 transition-colors font-medium py-2"
+                >
+                  About
+                </button>
+                <button
+                  onClick={() => scrollToSection('contact')}
+                  className="text-left text-gray-600 hover:text-blue-600 transition-colors font-medium py-2"
+                >
+                  Contact
+                </button>
+                
                 <div className="flex flex-col space-y-3 pt-4 border-t border-gray-200">
                   <button
                     onClick={() => {
@@ -219,7 +313,7 @@ function App() {
                       handleProviderLogin();
                       setIsMobileMenuOpen(false);
                     }}
-                    className="text-blue-600 hover:text-blue-700 transition-colors font-medium"
+                    className="text-blue-600 hover:text-blue-700 transition-colors font-medium py-2"
                   >
                     Provider Login
                   </button>
@@ -239,7 +333,7 @@ function App() {
       ) : (
         <>
           {/* Hero Section */}
-          <section className="relative bg-gradient-to-br from-blue-600 via-purple-600 to-emerald-600 text-white py-24 overflow-hidden">
+          <section className="relative bg-gradient-to-br from-blue-600 via-purple-600 to-emerald-600 text-white py-20 overflow-hidden">
             {/* Animated Background Elements */}
             <div className="absolute inset-0 overflow-hidden">
               <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
@@ -249,45 +343,49 @@ function App() {
 
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <div className="animate-fade-in-up">
-                <h2 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+                <h2 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
                   Find Trusted Service Providers
-                  <span className="block text-3xl md:text-4xl mt-4 text-blue-100 font-light">
+                  <span className="block text-2xl md:text-3xl mt-4 text-blue-100 font-light">
                     Instantly with AI-Powered Matching
                   </span>
                 </h2>
-                <p className="text-xl md:text-2xl mb-12 text-blue-100 max-w-4xl mx-auto leading-relaxed">
+                <p className="text-lg md:text-xl mb-10 text-blue-100 max-w-3xl mx-auto leading-relaxed">
                   Connect with verified professionals for all your service needs. Get instant quotations through our WhatsApp bot or browse our curated marketplace.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                  <button
-                    onClick={() => setActiveTab('chat')}
-                    className="group bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-2xl font-semibold flex items-center justify-center space-x-3 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl min-w-[200px]"
-                  >
-                    <MessageCircle className="w-6 h-6 group-hover:animate-bounce" />
-                    <span>Try WhatsApp Bot</span>
-                  </button>
+                
+                {/* Simple Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-2xl mx-auto">
                   <button
                     onClick={() => setActiveTab('browse')}
-                    className="group bg-white/20 hover:bg-white/30 backdrop-blur-lg text-white px-8 py-4 rounded-2xl font-semibold flex items-center justify-center space-x-3 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl min-w-[200px]"
+                    className="group bg-white text-blue-600 px-8 py-4 rounded-2xl font-bold flex items-center justify-center space-x-3 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl min-w-[200px] text-lg"
                   >
                     <Search className="w-6 h-6 group-hover:animate-pulse" />
-                    <span>Browse Providers</span>
+                    <span>Find Providers</span>
                   </button>
                   <button
-                    onClick={() => setActiveTab('qr-generator')}
-                    className="group bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-4 rounded-2xl font-semibold flex items-center justify-center space-x-3 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl min-w-[200px]"
+                    onClick={() => setActiveTab('chat')}
+                    className="group bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-2xl font-bold flex items-center justify-center space-x-3 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl min-w-[200px] text-lg"
                   >
-                    <QrCode className="w-6 h-6 group-hover:animate-pulse" />
-                    <span>QR Code Generator</span>
+                    <MessageCircle className="w-6 h-6 group-hover:animate-bounce" />
+                    <span>Chat with AI</span>
+                  </button>
+                </div>
+                
+                <div className="mt-6">
+                  <button
+                    onClick={() => setIsRegistrationModalOpen(true)}
+                    className="text-blue-100 hover:text-white transition-colors font-medium text-lg underline decoration-2 underline-offset-4"
+                  >
+                    Are you a service provider? Join us →
                   </button>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Tab Navigation */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex flex-wrap justify-center gap-2 bg-white/80 backdrop-blur-lg p-2 rounded-2xl w-fit mx-auto shadow-lg border border-white/20">
+          {/* Quick Navigation Tabs */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex flex-wrap justify-center gap-3 bg-white/80 backdrop-blur-lg p-3 rounded-2xl w-fit mx-auto shadow-lg border border-white/20">
               <button
                 onClick={() => setActiveTab('browse')}
                 className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
@@ -297,7 +395,8 @@ function App() {
                 }`}
               >
                 <Search className="w-4 h-4" />
-                <span>Browse Providers</span>
+                <span className="hidden sm:inline">Browse</span>
+                <span className="sm:hidden">Find</span>
               </button>
               <button
                 onClick={() => setActiveTab('chat')}
@@ -308,7 +407,8 @@ function App() {
                 }`}
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>WhatsApp Bot</span>
+                <span className="hidden sm:inline">AI Chat</span>
+                <span className="sm:hidden">Chat</span>
               </button>
               <button
                 onClick={() => setActiveTab('qr-generator')}
@@ -319,7 +419,8 @@ function App() {
                 }`}
               >
                 <QrCode className="w-4 h-4" />
-                <span>QR Generator</span>
+                <span className="hidden sm:inline">QR Code</span>
+                <span className="sm:hidden">QR</span>
               </button>
             </div>
           </div>
@@ -329,8 +430,8 @@ function App() {
             {activeTab === 'browse' ? (
               <div className="space-y-8">
                 {/* Search and Filters */}
-                <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-white/20">
-                  <div className="relative mb-8">
+                <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-white/20">
+                  <div className="relative mb-6">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
                     <input
                       type="text"
@@ -392,10 +493,10 @@ function App() {
             ) : activeTab === 'chat' ? (
               <div className="space-y-8">
                 <div className="text-center mb-12">
-                  <h3 className="text-4xl font-bold text-gray-900 mb-6">AI-Powered WhatsApp Bot</h3>
+                  <h3 className="text-4xl font-bold text-gray-900 mb-6">AI-Powered Assistant</h3>
                   <p className="text-gray-600 max-w-3xl mx-auto text-lg leading-relaxed">
-                    Chat with our intelligent bot to get instant service provider recommendations and quotations. 
-                    Just describe what you need in natural language!
+                    Chat with our intelligent assistant to get instant service provider recommendations and quotations. 
+                    Just describe what you need in simple language!
                   </p>
                 </div>
                 <div className="max-w-3xl mx-auto">
@@ -410,10 +511,10 @@ function App() {
           </main>
 
           {/* How It Works Section */}
-          <section className="bg-white py-24">
+          <section id="how-it-works" className="bg-white py-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-20">
-                <h2 className="text-5xl font-bold text-gray-900 mb-6">How FundiConnect Works</h2>
+              <div className="text-center mb-16">
+                <h2 className="text-4xl font-bold text-gray-900 mb-6">How FundiConnect Works</h2>
                 <p className="text-xl text-gray-600 max-w-2xl mx-auto">Simple, fast, and reliable service booking in three easy steps</p>
               </div>
               
@@ -423,7 +524,7 @@ function App() {
                     <Search className="w-10 h-10 text-white" />
                   </div>
                   <h3 className="text-2xl font-semibold mb-6">1. Search or Chat</h3>
-                  <p className="text-gray-600 text-lg leading-relaxed">Browse our marketplace or use our AI bot to describe your service needs in natural language.</p>
+                  <p className="text-gray-600 text-lg leading-relaxed">Browse our marketplace or use our AI assistant to describe your service needs in natural language.</p>
                 </div>
                 
                 <div className="text-center group">
@@ -438,78 +539,114 @@ function App() {
                   <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg group-hover:shadow-2xl transition-all duration-300 transform group-hover:scale-110">
                     <CheckCircle className="w-10 h-10 text-white" />
                   </div>
-                  <h3 className="text-2xl font-semibold mb-6">3. Book & Pay</h3>
-                  <p className="text-gray-600 text-lg leading-relaxed">Review quotations, book your preferred provider, and enjoy reliable service delivery.</p>
+                  <h3 className="text-2xl font-semibold mb-6">3. Book & Connect</h3>
+                  <p className="text-gray-600 text-lg leading-relaxed">Review quotations, contact your preferred provider, and enjoy reliable service delivery.</p>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Footer */}
-          <footer className="bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 text-white py-20">
+          {/* About Section */}
+          <section id="about" className="bg-gradient-to-br from-gray-50 to-blue-50 py-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div>
-                  <div className="flex items-center space-x-3 mb-8">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-xl flex items-center justify-center">
-                      <Users className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold">FundiConnect</h3>
-                      <p className="text-sm text-gray-300">AI-Powered Marketplace</p>
-                    </div>
-                  </div>
-                  <p className="text-gray-300 mb-6 leading-relaxed">
-                    Connecting you with trusted service providers across Kenya through AI-powered matching and intelligent automation.
+                  <h2 className="text-4xl font-bold text-gray-900 mb-6">About FundiConnect</h2>
+                  <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+                    FundiConnect is Kenya's leading AI-powered service marketplace, connecting customers with trusted, verified service providers across the country.
                   </p>
-                  <div className="flex space-x-4">
-                    <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer">
-                      <Phone className="w-5 h-5 text-gray-300" />
+                  <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                    Our intelligent matching system ensures you find the right professional for your needs, whether it's plumbing, cleaning, electrical work, or any other service.
+                  </p>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-blue-600 mb-2">500+</div>
+                      <div className="text-gray-600">Verified Providers</div>
                     </div>
-                    <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer">
-                      <Mail className="w-5 h-5 text-gray-300" />
-                    </div>
-                    <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer">
-                      <MapPin className="w-5 h-5 text-gray-300" />
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-emerald-600 mb-2">10,000+</div>
+                      <div className="text-gray-600">Happy Customers</div>
                     </div>
                   </div>
                 </div>
-                
-                <div>
-                  <h4 className="text-xl font-semibold mb-6">Services</h4>
-                  <ul className="space-y-3 text-gray-300">
-                    <li className="hover:text-white transition-colors cursor-pointer">Plumbing</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Cleaning</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Electrical</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Beauty & Wellness</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Carpentry</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Tutoring</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Masonry</li>
-                  </ul>
+                <div className="bg-white rounded-2xl shadow-xl p-8">
+                  <h3 className="text-2xl font-semibold mb-6">Why Choose FundiConnect?</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="w-6 h-6 text-green-500 mt-1" />
+                      <div>
+                        <h4 className="font-semibold">Verified Professionals</h4>
+                        <p className="text-gray-600">All providers are background-checked and verified</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="w-6 h-6 text-green-500 mt-1" />
+                      <div>
+                        <h4 className="font-semibold">AI-Powered Matching</h4>
+                        <p className="text-gray-600">Smart algorithms find the perfect provider for your needs</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="w-6 h-6 text-green-500 mt-1" />
+                      <div>
+                        <h4 className="font-semibold">Instant Quotations</h4>
+                        <p className="text-gray-600">Get pricing estimates in real-time</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="w-6 h-6 text-green-500 mt-1" />
+                      <div>
+                        <h4 className="font-semibold">24/7 Support</h4>
+                        <p className="text-gray-600">Our AI assistant is always available to help</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Contact Section */}
+          <section id="contact" className="bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 text-white py-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl font-bold mb-6">Get in Touch</h2>
+                <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+                  Have questions? Need support? We're here to help you connect with the right service providers.
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <Phone className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4">Call Us</h3>
+                  <p className="text-gray-300 mb-2">+254 700 000 000</p>
+                  <p className="text-gray-400 text-sm">Mon-Fri 8AM-6PM</p>
                 </div>
                 
-                <div>
-                  <h4 className="text-xl font-semibold mb-6">Company</h4>
-                  <ul className="space-y-3 text-gray-300">
-                    <li className="hover:text-white transition-colors cursor-pointer">About Us</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">How it Works</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Pricing</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Contact</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Careers</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Blog</li>
-                  </ul>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <Mail className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4">Email Us</h3>
+                  <p className="text-gray-300 mb-2">support@fundiconnect.com</p>
+                  <p className="text-gray-400 text-sm">We reply within 24 hours</p>
                 </div>
                 
-                <div>
-                  <h4 className="text-xl font-semibold mb-6">Support</h4>
-                  <ul className="space-y-3 text-gray-300">
-                    <li className="hover:text-white transition-colors cursor-pointer">Help Center</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Safety</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Terms of Service</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Privacy Policy</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Trust & Safety</li>
-                    <li className="hover:text-white transition-colors cursor-pointer">Become a Provider</li>
-                  </ul>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <MessageCircle className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4">Chat with AI</h3>
+                  <button
+                    onClick={() => setActiveTab('chat')}
+                    className="text-blue-300 hover:text-blue-200 transition-colors"
+                  >
+                    Start conversation →
+                  </button>
+                  <p className="text-gray-400 text-sm mt-2">Available 24/7</p>
                 </div>
               </div>
               
@@ -518,7 +655,7 @@ function App() {
                 <p className="text-gray-400 mt-4 md:mt-0">Made with ❤️ in Kenya</p>
               </div>
             </div>
-          </footer>
+          </section>
         </>
       )}
 
@@ -540,6 +677,14 @@ function App() {
         <ProviderRegistration
           onSubmit={handleProviderRegistration}
           onClose={() => setIsRegistrationModalOpen(false)}
+        />
+      )}
+
+      {/* Click outside to close dropdowns */}
+      {showServicesDropdown && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowServicesDropdown(false)}
         />
       )}
     </div>
