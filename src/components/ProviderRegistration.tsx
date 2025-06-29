@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { User, Briefcase, Shield, Clock, Upload, Plus, X, Check, AlertCircle, CreditCard } from 'lucide-react';
+import { User, Briefcase, Shield, Clock, Upload, Plus, X, Check, AlertCircle } from 'lucide-react';
 import { ProviderRegistrationData } from '../types';
 import { serviceCategories } from '../data/mockData';
-import { PaymentModal } from './PaymentModal';
 
 interface ProviderRegistrationProps {
   onSubmit: (data: ProviderRegistrationData) => void;
@@ -46,15 +45,12 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
   const [newService, setNewService] = useState('');
   const [newCertification, setNewCertification] = useState('');
   const [newServiceArea, setNewServiceArea] = useState('');
-  const [showPayment, setShowPayment] = useState(false);
-  const [registrationFee] = useState(100); // KSh 100 registration fee
 
   const steps = [
     { id: 1, title: 'Personal Info', icon: User },
     { id: 2, title: 'Business Details', icon: Briefcase },
     { id: 3, title: 'Credentials', icon: Shield },
-    { id: 4, title: 'Availability', icon: Clock },
-    { id: 5, title: 'Payment', icon: CreditCard }
+    { id: 4, title: 'Availability', icon: Clock }
   ];
 
   const workingDaysOptions = [
@@ -119,8 +115,6 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
       case 4:
         return !!(formData.availability.workingDays.length > 0 && 
                  formData.availability.serviceAreas.length > 0);
-      case 5:
-        return true; // Payment step
       default:
         return false;
     }
@@ -128,12 +122,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      if (currentStep === 4) {
-        // Show payment step
-        setCurrentStep(5);
-      } else {
-        setCurrentStep(prev => Math.min(prev + 1, 5));
-      }
+      setCurrentStep(prev => Math.min(prev + 1, 4));
     }
   };
 
@@ -141,20 +130,21 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handlePaymentSuccess = (transactionId: string) => {
-    // Add payment info to form data
-    const finalData = {
-      ...formData,
-      paymentInfo: {
-        transactionId,
-        amount: registrationFee,
-        status: 'paid',
-        paidAt: new Date()
-      }
-    };
-    
-    onSubmit(finalData);
-    setShowPayment(false);
+  const handleSubmit = () => {
+    if (validateStep(4)) {
+      // Add free registration info
+      const finalData = {
+        ...formData,
+        paymentInfo: {
+          transactionId: `FREE_${Date.now()}`,
+          amount: 0,
+          status: 'paid' as const,
+          paidAt: new Date()
+        }
+      };
+      
+      onSubmit(finalData);
+    }
   };
 
   const renderStepContent = () => {
@@ -566,79 +556,18 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
                 ))}
               </div>
             </div>
-          </div>
-        );
 
-      case 5:
-        return (
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Registration Payment</h3>
-              <p className="text-gray-600">Complete your registration with a one-time payment</p>
-            </div>
-
-            {/* Registration Fee Information */}
+            {/* Free Registration Notice */}
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
               <div className="text-center">
                 <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <CreditCard className="w-8 h-8 text-green-600" />
+                  <Check className="w-8 h-8 text-green-600" />
                 </div>
-                <h4 className="text-xl font-semibold text-green-900 mb-2">Registration Fee</h4>
-                <p className="text-3xl font-bold text-green-600 mb-2">KSh {registrationFee.toLocaleString()}</p>
-                <p className="text-green-700 text-sm">One-time payment to join FundiConnect</p>
+                <h4 className="text-xl font-semibold text-green-900 mb-2">Free Registration!</h4>
+                <p className="text-green-700 text-lg font-medium mb-2">Join FundiConnect at no cost</p>
+                <p className="text-green-600 text-sm">Help us test our platform and get early access to customers</p>
               </div>
             </div>
-
-            {/* What's Included */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h4 className="font-semibold text-gray-900 mb-4">What's included in your registration:</h4>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-700">Profile verification and approval</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-700">Access to customer bookings</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-700">AI-powered customer matching</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-700">WhatsApp and Telegram bot integration</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-700">Provider dashboard and analytics</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-700">24/7 customer support</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Notice */}
-            <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div className="text-sm text-blue-800">
-                  <p className="font-medium mb-1">Secure Payment</p>
-                  <p>Your payment will be processed securely through M-Pesa. After successful payment, your application will be reviewed and approved within 24 hours.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Button */}
-            <button
-              onClick={() => setShowPayment(true)}
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4 rounded-xl font-semibold text-lg hover:shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
-            >
-              <CreditCard className="w-5 h-5" />
-              <span>Pay KSh {registrationFee} & Complete Registration</span>
-            </button>
           </div>
         );
 
@@ -648,100 +577,97 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
   };
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-          {/* Header */}
-          <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Join as Service Provider</h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Join as Service Provider - FREE!</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-          {/* Progress Steps */}
-          <div className="px-6 py-4 border-b">
-            <div className="flex items-center justify-between">
-              {steps.map((step, index) => {
-                const StepIcon = step.icon;
-                const isActive = currentStep === step.id;
-                const isCompleted = currentStep > step.id;
-                
-                return (
-                  <div key={step.id} className="flex items-center">
-                    <div className={`flex items-center space-x-2 ${
-                      isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'
-                    }`}>
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        isActive ? 'bg-blue-100' : isCompleted ? 'bg-green-100' : 'bg-gray-100'
-                      }`}>
-                        {isCompleted ? (
-                          <Check className="w-5 h-5" />
-                        ) : (
-                          <StepIcon className="w-5 h-5" />
-                        )}
-                      </div>
-                      <span className="font-medium hidden sm:block">{step.title}</span>
-                    </div>
-                    {index < steps.length - 1 && (
-                      <div className={`w-8 sm:w-16 h-0.5 mx-2 sm:mx-4 ${
-                        isCompleted ? 'bg-green-600' : 'bg-gray-300'
-                      }`} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-6">
-            {renderStepContent()}
-          </div>
-
-          {/* Footer */}
-          <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-between">
-            <button
-              onClick={handlePrevious}
-              disabled={currentStep === 1}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            
-            <div className="flex space-x-3 items-center">
-              {!validateStep(currentStep) && currentStep < 5 && (
-                <div className="flex items-center text-orange-600 text-sm">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  Please fill all required fields
-                </div>
-              )}
+        {/* Progress Steps */}
+        <div className="px-6 py-4 border-b">
+          <div className="flex items-center justify-between">
+            {steps.map((step, index) => {
+              const StepIcon = step.icon;
+              const isActive = currentStep === step.id;
+              const isCompleted = currentStep > step.id;
               
-              {currentStep < 5 ? (
-                <button
-                  onClick={handleNext}
-                  disabled={!validateStep(currentStep)}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {currentStep === 4 ? 'Proceed to Payment' : 'Next'}
-                </button>
-              ) : null}
-            </div>
+              return (
+                <div key={step.id} className="flex items-center">
+                  <div className={`flex items-center space-x-2 ${
+                    isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'
+                  }`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      isActive ? 'bg-blue-100' : isCompleted ? 'bg-green-100' : 'bg-gray-100'
+                    }`}>
+                      {isCompleted ? (
+                        <Check className="w-5 h-5" />
+                      ) : (
+                        <StepIcon className="w-5 h-5" />
+                      )}
+                    </div>
+                    <span className="font-medium hidden sm:block">{step.title}</span>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div className={`w-8 sm:w-16 h-0.5 mx-2 sm:mx-4 ${
+                      isCompleted ? 'bg-green-600' : 'bg-gray-300'
+                    }`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {renderStepContent()}
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-between">
+          <button
+            onClick={handlePrevious}
+            disabled={currentStep === 1}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          
+          <div className="flex space-x-3 items-center">
+            {!validateStep(currentStep) && (
+              <div className="flex items-center text-orange-600 text-sm">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                Please fill all required fields
+              </div>
+            )}
+            
+            {currentStep < 4 ? (
+              <button
+                onClick={handleNext}
+                disabled={!validateStep(currentStep)}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={!validateStep(currentStep)}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+              >
+                Complete Free Registration
+              </button>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Payment Modal */}
-      <PaymentModal
-        isOpen={showPayment}
-        onClose={() => setShowPayment(false)}
-        amount={registrationFee}
-        description={`FundiConnect Provider Registration - ${formData.personalInfo.fullName}`}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
-    </>
+    </div>
   );
 };

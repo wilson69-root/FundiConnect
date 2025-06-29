@@ -99,7 +99,7 @@ function App() {
     setIsRegistrationModalOpen(false);
     setActiveTab('dashboard');
     
-    alert('Registration and payment successful! Your application is under review. You will receive confirmation within 24 hours.');
+    alert('Registration successful! Welcome to FundiConnect! Your application is under review and you will receive confirmation within 24 hours.');
   };
 
   const handleProviderUpdate = (updates: Partial<ProviderProfile>) => {
@@ -142,8 +142,8 @@ function App() {
       experience: 8,
       certifications: ['Licensed Plumber', 'Water Systems Specialist'],
       registrationPayment: {
-        transactionId: 'DEMO_12345',
-        amount: 100,
+        transactionId: 'FREE_DEMO',
+        amount: 0,
         status: 'paid',
         paidAt: new Date('2024-01-15')
       }
@@ -242,7 +242,7 @@ function App() {
                   className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium"
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span>Join as Provider</span>
+                  <span>Join FREE</span>
                 </button>
                 <button
                   onClick={handleProviderLogin}
@@ -312,7 +312,7 @@ function App() {
                     className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium"
                   >
                     <UserPlus className="w-4 h-4" />
-                    <span>Join as Provider</span>
+                    <span>Join FREE</span>
                   </button>
                   <button
                     onClick={() => {
@@ -382,7 +382,7 @@ function App() {
                     onClick={() => setIsRegistrationModalOpen(true)}
                     className="text-blue-100 hover:text-white transition-colors font-medium text-lg underline decoration-2 underline-offset-4"
                   >
-                    Are you a service provider? Join us for just KSh 100 →
+                    Are you a service provider? Join us FREE →
                   </button>
                 </div>
               </div>
@@ -490,7 +490,7 @@ function App() {
                       onClick={() => setIsRegistrationModalOpen(true)}
                       className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 transform hover:scale-105"
                     >
-                      Join as Service Provider
+                      Join as Service Provider - FREE
                     </button>
                   </div>
                 )}
