@@ -169,7 +169,7 @@ export const serviceCategories: ServiceCategory[] = [
   {
     id: 'masonry',
     name: 'Masonry',
-    icon: 'Building',
+    icon: 'HardHat',
     description: 'Stone and brick construction',
     gradient: 'from-gray-500 to-gray-600'
   }
