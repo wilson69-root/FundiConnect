@@ -93,6 +93,12 @@ export interface ProviderRegistrationData {
     };
     serviceAreas: string[];
   };
+  paymentInfo?: {
+    transactionId: string;
+    amount: number;
+    status: 'paid' | 'pending' | 'failed';
+    paidAt: Date;
+  };
 }
 
 export interface ProviderProfile extends ServiceProvider {
@@ -100,6 +106,12 @@ export interface ProviderProfile extends ServiceProvider {
   registrationDate: Date;
   documentsVerified: boolean;
   backgroundCheckStatus: 'pending' | 'completed' | 'failed';
+  registrationPayment?: {
+    transactionId: string;
+    amount: number;
+    status: 'paid' | 'pending' | 'failed';
+    paidAt: Date;
+  };
 }
 
 export interface PaymentTransaction {

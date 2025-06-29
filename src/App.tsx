@@ -51,7 +51,12 @@ function App() {
     console.log('Booking submitted:', bookingData);
     setIsBookingModalOpen(false);
     setSelectedProvider(null);
-    alert('Booking request submitted successfully! We will contact you shortly to confirm.');
+    
+    if (bookingData.paymentStatus === 'paid') {
+      alert('Booking confirmed! Payment successful. We will contact you shortly to confirm the appointment.');
+    } else {
+      alert('Booking request submitted! Please complete payment to confirm your appointment.');
+    }
   };
 
   const handleCategoryClick = (categoryId: string) => {
@@ -84,7 +89,8 @@ function App() {
       documentsVerified: false,
       backgroundCheckStatus: 'pending',
       joinDate: new Date(),
-      completedJobs: 0
+      completedJobs: 0,
+      registrationPayment: registrationData.paymentInfo
     };
 
     // Add to providers list (in a real app, this would be sent to backend)
@@ -93,7 +99,7 @@ function App() {
     setIsRegistrationModalOpen(false);
     setActiveTab('dashboard');
     
-    alert('Registration submitted successfully! Your application is under review.');
+    alert('Registration and payment successful! Your application is under review. You will receive confirmation within 24 hours.');
   };
 
   const handleProviderUpdate = (updates: Partial<ProviderProfile>) => {
@@ -122,7 +128,13 @@ function App() {
       email: 'john.kamau@email.com',
       phone: '+254700000000',
       experience: 8,
-      certifications: ['Licensed Plumber', 'Water Systems Specialist']
+      certifications: ['Licensed Plumber', 'Water Systems Specialist'],
+      registrationPayment: {
+        transactionId: 'DEMO_12345',
+        amount: 100,
+        status: 'paid',
+        paidAt: new Date('2024-01-15')
+      }
     };
     
     setCurrentProvider(demoProvider);
@@ -358,7 +370,7 @@ function App() {
                     onClick={() => setIsRegistrationModalOpen(true)}
                     className="text-blue-100 hover:text-white transition-colors font-medium text-lg underline decoration-2 underline-offset-4"
                   >
-                    Are you a service provider? Join us →
+                    Are you a service provider? Join us for just KSh 100 →
                   </button>
                 </div>
               </div>
@@ -505,8 +517,8 @@ function App() {
                   <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg group-hover:shadow-2xl transition-all duration-300 transform group-hover:scale-110">
                     <CheckCircle className="w-10 h-10 text-white" />
                   </div>
-                  <h3 className="text-2xl font-semibold mb-6">3. Book & Connect</h3>
-                  <p className="text-gray-600 text-lg leading-relaxed">Review quotations, contact your preferred provider, and enjoy reliable service delivery.</p>
+                  <h3 className="text-2xl font-semibold mb-6">3. Book & Pay</h3>
+                  <p className="text-gray-600 text-lg leading-relaxed">Review quotations, pay securely with M-Pesa, and enjoy reliable service delivery.</p>
                 </div>
               </div>
             </div>
@@ -555,8 +567,8 @@ function App() {
                     <div className="flex items-start space-x-3">
                       <CheckCircle className="w-6 h-6 text-green-500 mt-1" />
                       <div>
-                        <h4 className="font-semibold">Instant Quotations</h4>
-                        <p className="text-gray-600">Get pricing estimates in real-time</p>
+                        <h4 className="font-semibold">Secure Payments</h4>
+                        <p className="text-gray-600">Pay safely with M-Pesa integration</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
