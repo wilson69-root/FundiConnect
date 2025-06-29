@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MessageCircle, Users, Star, CheckCircle, Phone, Mail, MapPin, UserPlus, Menu, X, QrCode, Home, Info, HelpCircle, ChevronDown } from 'lucide-react';
+import { Search, MessageCircle, Users, Star, CheckCircle, Phone, Mail, MapPin, UserPlus, Menu, X, Home, Info, HelpCircle, ChevronDown } from 'lucide-react';
 import { ServiceProvider, BookingData, ProviderRegistrationData, ProviderProfile } from './types';
 import { mockProviders, serviceCategories } from './data/mockData';
 import { ProviderCard } from './components/ProviderCard';
@@ -8,10 +8,9 @@ import { WhatsAppChat } from './components/WhatsAppChat';
 import { CategoryCard } from './components/CategoryCard';
 import { ProviderRegistration } from './components/ProviderRegistration';
 import { ProviderDashboard } from './components/ProviderDashboard';
-import { QRCodeGenerator } from './components/QRCodeGenerator';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'browse' | 'chat' | 'dashboard' | 'qr-generator'>('browse');
+  const [activeTab, setActiveTab] = useState<'browse' | 'chat' | 'dashboard'>('browse');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedProvider, setSelectedProvider] = useState<ServiceProvider | null>(null);
@@ -215,13 +214,6 @@ function App() {
               
               <div className="flex items-center space-x-3 ml-6 border-l border-gray-200 pl-6">
                 <button
-                  onClick={() => setActiveTab('qr-generator')}
-                  className="flex items-center space-x-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium"
-                >
-                  <QrCode className="w-4 h-4" />
-                  <span>QR Generator</span>
-                </button>
-                <button
                   onClick={() => setIsRegistrationModalOpen(true)}
                   className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium"
                 >
@@ -288,16 +280,6 @@ function App() {
                 </button>
                 
                 <div className="flex flex-col space-y-3 pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => {
-                      setActiveTab('qr-generator');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex items-center justify-center space-x-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-xl font-medium"
-                  >
-                    <QrCode className="w-4 h-4" />
-                    <span>QR Generator</span>
-                  </button>
                   <button
                     onClick={() => {
                       setIsRegistrationModalOpen(true);
@@ -410,18 +392,6 @@ function App() {
                 <span className="hidden sm:inline">AI Chat</span>
                 <span className="sm:hidden">Chat</span>
               </button>
-              <button
-                onClick={() => setActiveTab('qr-generator')}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
-                  activeTab === 'qr-generator'
-                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg transform scale-105'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                }`}
-              >
-                <QrCode className="w-4 h-4" />
-                <span className="hidden sm:inline">QR Code</span>
-                <span className="sm:hidden">QR</span>
-              </button>
             </div>
           </div>
 
@@ -502,10 +472,6 @@ function App() {
                 <div className="max-w-3xl mx-auto">
                   <WhatsAppChat onBookProvider={handleBookProviderFromChat} />
                 </div>
-              </div>
-            ) : activeTab === 'qr-generator' ? (
-              <div className="space-y-8">
-                <QRCodeGenerator />
               </div>
             ) : null}
           </main>
