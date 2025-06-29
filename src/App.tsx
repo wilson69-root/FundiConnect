@@ -1,25 +1,56 @@
-import React, { useState } from 'react';
-import { Search, MessageCircle, Users, Star, CheckCircle, Phone, Mail, MapPin, UserPlus, Menu, X, Home, Info, HelpCircle, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, MessageCircle, Users, Star, CheckCircle, Phone, Mail, MapPin, UserPlus, Menu, X, Home, Info, HelpCircle, ChevronDown, LogOut, User } from 'lucide-react';
 import { ServiceProvider, BookingData, ProviderRegistrationData, ProviderProfile } from './types';
-import { mockProviders, serviceCategories } from './data/mockData';
+import { serviceCategories } from './data/mockData';
 import { ProviderCard } from './components/ProviderCard';
 import { BookingModal } from './components/BookingModal';
 import { WhatsAppChat } from './components/WhatsAppChat';
 import { CategoryCard } from './components/CategoryCard';
 import { ProviderRegistration } from './components/ProviderRegistration';
 import { ProviderDashboard } from './components/ProviderDashboard';
+import { AuthModal } from './components/AuthModal';
+import { useAuth } from './hooks/useAuth';
+import { databaseService } from './services/databaseService';
 
 function App() {
+  const { user, loading: authLoading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'browse' | 'chat' | 'dashboard'>('browse');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedProvider, setSelectedProvider] = useState<ServiceProvider | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
   const [currentProvider, setCurrentProvider] = useState<ProviderProfile | null>(null);
-  const [providers, setProviders] = useState<ServiceProvider[]>(mockProviders);
+  const [providers, setProviders] = useState<ServiceProvider[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showServicesDropdown, setShowServicesDropdown] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Load providers from database
+  useEffect(() => {
+    loadProviders();
+  }, []);
+
+  const loadProviders = async () => {
+    try {
+      setLoading(true);
+      const data = await databaseService.getServiceProviders({
+        category: selectedCategory || undefined,
+      });
+      setProviders(data);
+    } catch (error) {
+      console.error('Error loading providers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reload providers when category changes
+  useEffect(() => {
+    loadProviders();
+  }, [selectedCategory]);
 
   const filteredProviders = providers.filter(provider => {
     const matchesSearch = provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -30,6 +61,11 @@ function App() {
   });
 
   const handleBookProvider = (provider: ServiceProvider) => {
+    if (!user) {
+      setAuthModalMode('signin');
+      setIsAuthModalOpen(true);
+      return;
+    }
     setSelectedProvider(provider);
     setIsBookingModalOpen(true);
   };
@@ -37,25 +73,41 @@ function App() {
   const handleBookProviderFromChat = (providerId: string) => {
     const provider = providers.find(p => p.id === providerId);
     if (provider) {
-      setSelectedProvider(provider);
-      setIsBookingModalOpen(true);
-      setActiveTab('browse');
+      handleBookProvider(provider);
     }
   };
 
   const handleCallProvider = (provider: ServiceProvider) => {
-    window.open(`tel:+254700000000`, '_self');
+    window.open(`tel:${provider.phone || '+254700000000'}`, '_self');
   };
 
-  const handleBookingSubmit = (bookingData: BookingData) => {
-    console.log('Booking submitted:', bookingData);
-    setIsBookingModalOpen(false);
-    setSelectedProvider(null);
-    
-    if (bookingData.paymentStatus === 'paid') {
-      alert('Booking confirmed! Payment successful. We will contact you shortly to confirm the appointment.');
-    } else {
-      alert('Booking request submitted! Please complete payment to confirm your appointment.');
+  const handleBookingSubmit = async (bookingData: BookingData) => {
+    if (!user) return;
+
+    try {
+      const booking = await databaseService.createBooking(bookingData, user.id);
+      
+      // Create payment record
+      await databaseService.createPayment({
+        booking_id: booking.id,
+        amount: bookingData.totalCost,
+        payment_method: 'mpesa',
+        status: bookingData.paymentStatus === 'paid' ? 'paid' : 'pending',
+        transaction_id: bookingData.transactionId,
+        phone_number: bookingData.contactPhone,
+      });
+
+      setIsBookingModalOpen(false);
+      setSelectedProvider(null);
+      
+      if (bookingData.paymentStatus === 'paid') {
+        alert('Booking confirmed! Payment successful. We will contact you shortly to confirm the appointment.');
+      } else {
+        alert('Booking request submitted! Please complete payment to confirm your appointment.');
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      alert('Error creating booking. Please try again.');
     }
   };
 
@@ -64,93 +116,53 @@ function App() {
     setActiveTab('browse');
   };
 
-  const handleProviderRegistration = (registrationData: ProviderRegistrationData) => {
-    // Create new provider profile
-    const newProvider: ProviderProfile = {
-      id: `provider_${Date.now()}`,
-      name: registrationData.personalInfo.fullName,
-      category: registrationData.businessInfo.category,
-      rating: 0,
-      reviews: 0,
-      hourlyRate: registrationData.businessInfo.hourlyRate,
-      location: registrationData.personalInfo.location,
-      image: registrationData.personalInfo.profileImage || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400',
-      verified: false,
-      responseTime: registrationData.businessInfo.responseTime,
-      description: registrationData.businessInfo.description,
-      services: registrationData.businessInfo.services,
-      availability: 'offline',
-      email: registrationData.personalInfo.email,
-      phone: registrationData.personalInfo.phone,
-      experience: registrationData.businessInfo.experience,
-      certifications: registrationData.credentials.certifications,
-      status: 'pending',
-      registrationDate: new Date(),
-      documentsVerified: false,
-      backgroundCheckStatus: 'pending',
-      joinDate: new Date(),
-      completedJobs: 0,
-      registrationPayment: registrationData.paymentInfo
-    };
+  const handleProviderRegistration = async (registrationData: ProviderRegistrationData) => {
+    if (!user) {
+      setAuthModalMode('signup');
+      setIsAuthModalOpen(true);
+      return;
+    }
 
-    // Add to providers list (in a real app, this would be sent to backend)
-    setProviders(prev => [...prev, newProvider]);
-    setCurrentProvider(newProvider);
-    setIsRegistrationModalOpen(false);
-    setActiveTab('dashboard');
-    
-    alert('Registration successful! Welcome to FundiConnect! Your application is under review and you will receive confirmation within 24 hours.');
+    try {
+      const provider = await databaseService.createServiceProvider(registrationData, user.id);
+      
+      setIsRegistrationModalOpen(false);
+      setActiveTab('dashboard');
+      
+      alert('Registration successful! Welcome to FundiConnect! Your application is under review and you will receive confirmation within 24 hours.');
+      
+      // Reload providers to include the new one
+      loadProviders();
+    } catch (error) {
+      console.error('Error registering provider:', error);
+      alert('Error during registration. Please try again.');
+    }
   };
 
   const handleProviderUpdate = (updates: Partial<ProviderProfile>) => {
     if (currentProvider) {
       const updatedProvider = { ...currentProvider, ...updates };
       setCurrentProvider(updatedProvider);
-      
-      // Update in providers list
-      setProviders(prev => prev.map(p => 
-        p.id === currentProvider.id ? updatedProvider : p
-      ));
     }
   };
 
-  // Mock login for demo purposes
-  const handleProviderLogin = () => {
-    // For demo, create a sample provider profile
-    const demoProvider: ProviderProfile = {
-      id: 'demo_provider_1',
-      name: 'Demo Provider',
-      category: 'Plumbing',
-      rating: 4.8,
-      reviews: 124,
-      hourlyRate: 1500,
-      location: 'Nairobi, Westlands',
-      image: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400',
-      verified: true,
-      responseTime: '< 30 mins',
-      description: 'Expert plumber with 8+ years experience in residential and commercial plumbing.',
-      services: ['Pipe Installation', 'Leak Repairs', 'Drain Cleaning', 'Water Heater Service'],
-      availability: 'online',
-      status: 'approved',
-      registrationDate: new Date('2024-01-15'),
-      documentsVerified: true,
-      backgroundCheckStatus: 'completed',
-      joinDate: new Date('2024-01-15'),
-      completedJobs: 23,
-      email: 'demo.provider@email.com',
-      phone: '+254700000000',
-      experience: 8,
-      certifications: ['Licensed Plumber', 'Water Systems Specialist'],
-      registrationPayment: {
-        transactionId: 'FREE_DEMO',
-        amount: 0,
-        status: 'paid',
-        paidAt: new Date('2024-01-15')
-      }
-    };
-    
-    setCurrentProvider(demoProvider);
-    setActiveTab('dashboard');
+  const handleJoinAsProvider = () => {
+    if (!user) {
+      setAuthModalMode('signup');
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setIsRegistrationModalOpen(true);
+  };
+
+  const handleSignIn = () => {
+    setAuthModalMode('signin');
+    setIsAuthModalOpen(true);
+  };
+
+  const handleSignUp = () => {
+    setAuthModalMode('signup');
+    setIsAuthModalOpen(true);
   };
 
   const scrollToSection = (sectionId: string) => {
@@ -160,6 +172,20 @@ function App() {
     }
     setIsMobileMenuOpen(false);
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-emerald-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Users className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">FundiConnect</h2>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-emerald-50">
@@ -237,19 +263,49 @@ function App() {
               </button>
               
               <div className="flex items-center space-x-3 ml-6 border-l border-gray-200 pl-6">
-                <button
-                  onClick={() => setIsRegistrationModalOpen(true)}
-                  className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>Join FREE</span>
-                </button>
-                <button
-                  onClick={handleProviderLogin}
-                  className="text-blue-600 hover:text-blue-700 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-blue-50"
-                >
-                  Provider Login
-                </button>
+                {user ? (
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">
+                        {user.profile?.full_name || user.email}
+                      </span>
+                    </div>
+                    {user.profile?.role === 'provider' && (
+                      <button
+                        onClick={() => setActiveTab('dashboard')}
+                        className="text-blue-600 hover:text-blue-700 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-blue-50"
+                      >
+                        Dashboard
+                      </button>
+                    )}
+                    <button
+                      onClick={signOut}
+                      className="flex items-center space-x-1 text-gray-600 hover:text-red-600 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-red-50"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleJoinAsProvider}
+                      className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Join FREE</span>
+                    </button>
+                    <button
+                      onClick={handleSignIn}
+                      className="text-blue-600 hover:text-blue-700 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-blue-50"
+                    >
+                      Sign In
+                    </button>
+                  </>
+                )}
               </div>
             </nav>
 
@@ -304,25 +360,55 @@ function App() {
                 </button>
                 
                 <div className="flex flex-col space-y-3 pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => {
-                      setIsRegistrationModalOpen(true);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    <span>Join FREE</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleProviderLogin();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="text-blue-600 hover:text-blue-700 transition-colors font-medium py-2"
-                  >
-                    Provider Login
-                  </button>
+                  {user ? (
+                    <>
+                      <div className="text-sm text-gray-600">
+                        Welcome, {user.profile?.full_name || user.email}
+                      </div>
+                      {user.profile?.role === 'provider' && (
+                        <button
+                          onClick={() => {
+                            setActiveTab('dashboard');
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="text-blue-600 hover:text-blue-700 transition-colors font-medium py-2 text-left"
+                        >
+                          Provider Dashboard
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          signOut();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="text-red-600 hover:text-red-700 transition-colors font-medium py-2 text-left"
+                      >
+                        Sign Out
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          handleJoinAsProvider();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        <span>Join FREE</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleSignIn();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="text-blue-600 hover:text-blue-700 transition-colors font-medium py-2"
+                      >
+                        Sign In
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -330,8 +416,8 @@ function App() {
         </div>
       </header>
 
-      {/* Show Dashboard if provider is logged in */}
-      {currentProvider && activeTab === 'dashboard' ? (
+      {/* Show Dashboard if provider is logged in and dashboard tab is active */}
+      {user?.profile?.role === 'provider' && activeTab === 'dashboard' ? (
         <ProviderDashboard 
           provider={currentProvider} 
           onUpdateProfile={handleProviderUpdate}
@@ -379,7 +465,7 @@ function App() {
                 
                 <div className="mt-6">
                   <button
-                    onClick={() => setIsRegistrationModalOpen(true)}
+                    onClick={handleJoinAsProvider}
                     className="text-blue-100 hover:text-white transition-colors font-medium text-lg underline decoration-2 underline-offset-4"
                   >
                     Are you a service provider? Join us FREE →
@@ -458,12 +544,23 @@ function App() {
                     }
                   </h3>
                   <p className="text-gray-600 text-lg">
-                    {filteredProviders.length} provider{filteredProviders.length !== 1 ? 's' : ''} found
+                    {loading ? 'Loading...' : `${filteredProviders.length} provider${filteredProviders.length !== 1 ? 's' : ''} found`}
                   </p>
                 </div>
 
                 {/* Provider Grid */}
-                {filteredProviders.length > 0 ? (
+                {loading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="bg-white rounded-2xl shadow-xl p-6 animate-pulse">
+                        <div className="w-full h-48 bg-gray-200 rounded-xl mb-4"></div>
+                        <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded mb-4"></div>
+                        <div className="h-10 bg-gray-200 rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : filteredProviders.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {filteredProviders.map((provider) => (
                       <ProviderCard
@@ -487,7 +584,7 @@ function App() {
                       }
                     </p>
                     <button
-                      onClick={() => setIsRegistrationModalOpen(true)}
+                      onClick={handleJoinAsProvider}
                       className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 transform hover:scale-105"
                     >
                       Join as Service Provider - FREE
@@ -680,6 +777,13 @@ function App() {
           onClose={() => setIsRegistrationModalOpen(false)}
         />
       )}
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        defaultMode={authModalMode}
+      />
 
       {/* Click outside to close dropdowns */}
       {showServicesDropdown && (
