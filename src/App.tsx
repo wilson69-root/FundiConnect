@@ -290,33 +290,36 @@ function App() {
             <div className="flex flex-wrap justify-center gap-2 bg-white/80 backdrop-blur-lg p-2 rounded-2xl w-fit mx-auto shadow-lg border border-white/20">
               <button
                 onClick={() => setActiveTab('browse')}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
                   activeTab === 'browse'
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
-                Browse Providers
+                <Search className="w-4 h-4" />
+                <span>Browse Providers</span>
               </button>
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
                   activeTab === 'chat'
                     ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg transform scale-105'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
-                WhatsApp Bot
+                <MessageCircle className="w-4 h-4" />
+                <span>WhatsApp Bot</span>
               </button>
               <button
                 onClick={() => setActiveTab('qr-generator')}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
                   activeTab === 'qr-generator'
                     ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg transform scale-105'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
-                QR Generator
+                <QrCode className="w-4 h-4" />
+                <span>QR Generator</span>
               </button>
             </div>
           </div>
