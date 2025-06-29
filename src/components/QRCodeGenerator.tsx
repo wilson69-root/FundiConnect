@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Phone, MessageCircle, Settings, Palette, Download, Eye } from 'lucide-react';
+import { Phone, MessageCircle, Settings, Palette, Download, Eye, QrCode } from 'lucide-react';
 import { WhatsAppQRCode } from './WhatsAppQRCode';
 
 export const QRCodeGenerator: React.FC = () => {
@@ -42,6 +42,9 @@ export const QRCodeGenerator: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="text-center mb-8">
+        <div className="w-20 h-20 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+          <QrCode className="w-10 h-10 text-white" />
+        </div>
         <h2 className="text-4xl font-bold text-gray-900 mb-4">WhatsApp QR Code Generator</h2>
         <p className="text-xl text-gray-600">Create a QR code that redirects directly to your WhatsApp</p>
       </div>
