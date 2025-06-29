@@ -116,16 +116,28 @@ function App() {
 
   // Mock login for demo purposes
   const handleProviderLogin = () => {
-    // For demo, use the first provider as logged in user
+    // For demo, create a sample provider profile
     const demoProvider: ProviderProfile = {
-      ...mockProviders[0],
+      id: 'demo_provider_1',
+      name: 'Demo Provider',
+      category: 'Plumbing',
+      rating: 4.8,
+      reviews: 124,
+      hourlyRate: 1500,
+      location: 'Nairobi, Westlands',
+      image: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400',
+      verified: true,
+      responseTime: '< 30 mins',
+      description: 'Expert plumber with 8+ years experience in residential and commercial plumbing.',
+      services: ['Pipe Installation', 'Leak Repairs', 'Drain Cleaning', 'Water Heater Service'],
+      availability: 'online',
       status: 'approved',
       registrationDate: new Date('2024-01-15'),
       documentsVerified: true,
       backgroundCheckStatus: 'completed',
       joinDate: new Date('2024-01-15'),
       completedJobs: 23,
-      email: 'john.kamau@email.com',
+      email: 'demo.provider@email.com',
       phone: '+254700000000',
       experience: 8,
       certifications: ['Licensed Plumber', 'Water Systems Specialist'],
@@ -344,7 +356,7 @@ function App() {
                   </span>
                 </h2>
                 <p className="text-lg md:text-xl mb-10 text-blue-100 max-w-3xl mx-auto leading-relaxed">
-                  Connect with verified professionals for all your service needs. Get instant quotations through our WhatsApp bot or browse our curated marketplace.
+                  Connect with verified professionals for all your service needs. Get instant quotations through our AI assistant or browse our curated marketplace.
                 </p>
                 
                 {/* Simple Action Buttons */}
@@ -451,24 +463,35 @@ function App() {
                 </div>
 
                 {/* Provider Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {filteredProviders.map((provider) => (
-                    <ProviderCard
-                      key={provider.id}
-                      provider={provider}
-                      onBook={handleBookProvider}
-                      onCall={handleCallProvider}
-                    />
-                  ))}
-                </div>
-
-                {filteredProviders.length === 0 && (
+                {filteredProviders.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {filteredProviders.map((provider) => (
+                      <ProviderCard
+                        key={provider.id}
+                        provider={provider}
+                        onBook={handleBookProvider}
+                        onCall={handleCallProvider}
+                      />
+                    ))}
+                  </div>
+                ) : (
                   <div className="text-center py-20">
                     <div className="w-20 h-20 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-6">
                       <Search className="w-10 h-10 text-gray-400" />
                     </div>
                     <h3 className="text-2xl font-semibold text-gray-900 mb-3">No providers found</h3>
-                    <p className="text-gray-600 text-lg">Try adjusting your search or filters</p>
+                    <p className="text-gray-600 text-lg mb-6">
+                      {providers.length === 0 
+                        ? "Be the first to join our marketplace! Register as a service provider to get started."
+                        : "Try adjusting your search or filters, or check back later for new providers."
+                      }
+                    </p>
+                    <button
+                      onClick={() => setIsRegistrationModalOpen(true)}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+                    >
+                      Join as Service Provider
+                    </button>
                   </div>
                 )}
               </div>
@@ -538,12 +561,12 @@ function App() {
                   </p>
                   <div className="grid grid-cols-2 gap-6">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600 mb-2">500+</div>
-                      <div className="text-gray-600">Verified Providers</div>
+                      <div className="text-3xl font-bold text-blue-600 mb-2">{providers.length}+</div>
+                      <div className="text-gray-600">Registered Providers</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-emerald-600 mb-2">10,000+</div>
-                      <div className="text-gray-600">Happy Customers</div>
+                      <div className="text-3xl font-bold text-emerald-600 mb-2">24/7</div>
+                      <div className="text-gray-600">AI Assistant Available</div>
                     </div>
                   </div>
                 </div>

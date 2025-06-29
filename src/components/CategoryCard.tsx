@@ -26,7 +26,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onClick, i
             ? 'bg-white/20 backdrop-blur-sm shadow-lg' 
             : 'bg-gradient-to-br ' + category.gradient + ' text-white group-hover:shadow-lg group-hover:scale-110'
         }`}>
-          <IconComponent className="w-8 h-8" />
+          {IconComponent && <IconComponent className="w-8 h-8" />}
         </div>
         <div className="text-center">
           <h3 className={`font-bold text-lg ${isSelected ? 'text-white' : 'text-gray-900'}`}>

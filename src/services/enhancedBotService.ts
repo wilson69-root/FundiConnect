@@ -1,9 +1,8 @@
 import { ServiceProvider, ServiceQuotation, ChatMessage } from '../types';
-import { mockProviders } from '../data/mockData';
 import { aiService } from './aiService';
 
 export class EnhancedBotService {
-  private providers: ServiceProvider[] = mockProviders;
+  private providers: ServiceProvider[] = []; // Start with empty array
 
   async processMessage(message: string): Promise<ChatMessage[]> {
     try {
@@ -20,39 +19,41 @@ export class EnhancedBotService {
         type: 'text'
       });
 
-      // If it's a service request, find providers and generate quotations
+      // If it's a service request but no providers available
       if (aiResponse.intent === 'service_request' && aiResponse.entities.service) {
-        const matches = this.matchProviders(
-          aiResponse.entities.service,
-          aiResponse.entities.location,
-          aiResponse.entities.budget,
-          aiResponse.entities.urgent
-        );
-
-        if (matches.length > 0) {
-          const quotations = matches.map(provider => 
-            this.generateQuotation(provider, aiResponse.entities.service!, aiResponse.entities.urgent)
-          ).filter(q => q !== null);
-
-          if (quotations.length > 0) {
-            // Add a follow-up message with quotations
-            responses.push({
-              id: `quotes_${Date.now()}`,
-              text: `Poa! Here are ${quotations.length} fantastic options I found for you! 🌟 Each provider is verified and highly rated:`,
-              isBot: true,
-              timestamp: new Date(),
-              type: 'quotation',
-              data: quotations
-            });
-          }
-        } else {
+        if (this.providers.length === 0) {
           responses.push({
             id: `bot_${Date.now() + 1}`,
-            text: `Pole! I couldn't find any ${aiResponse.entities.service} providers${aiResponse.entities.location ? ` in ${aiResponse.entities.location}` : ''} right now. 😔 But don't worry! Would you like me to:\n\n🔍 Expand the search to nearby areas?\n🔄 Look for a different service?\n📞 Connect you with our support team?`,
+            text: `I understand you're looking for ${aiResponse.entities.service} services! 🔍 Unfortunately, we don't have any providers registered yet in our marketplace. \n\nBut here's the exciting part - you can be among the first to experience our platform! 🌟\n\n✨ **What you can do:**\n• Try our AI matching system (it's pretty smart!)\n• See how our quotation system works\n• Experience our user-friendly interface\n\nWe're actively recruiting service providers, so check back soon! In the meantime, feel free to explore and see how FundiConnect will revolutionize finding service providers in Kenya! 🚀`,
             isBot: true,
             timestamp: new Date(),
             type: 'text'
           });
+        } else {
+          // If we have providers, do normal matching
+          const matches = this.matchProviders(
+            aiResponse.entities.service,
+            aiResponse.entities.location,
+            aiResponse.entities.budget,
+            aiResponse.entities.urgent
+          );
+
+          if (matches.length > 0) {
+            const quotations = matches.map(provider => 
+              this.generateQuotation(provider, aiResponse.entities.service!, aiResponse.entities.urgent)
+            ).filter(q => q !== null);
+
+            if (quotations.length > 0) {
+              responses.push({
+                id: `quotes_${Date.now()}`,
+                text: `Poa! Here are ${quotations.length} fantastic options I found for you! 🌟 Each provider is verified and highly rated:`,
+                isBot: true,
+                timestamp: new Date(),
+                type: 'quotation',
+                data: quotations
+              });
+            }
+          }
         }
       }
 
@@ -67,6 +68,11 @@ export class EnhancedBotService {
         type: 'text'
       }];
     }
+  }
+
+  // Update providers list when new ones register
+  updateProviders(providers: ServiceProvider[]) {
+    this.providers = providers;
   }
 
   private matchProviders(service: string, location?: string, budget?: number, urgent?: boolean): ServiceProvider[] {
