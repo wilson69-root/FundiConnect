@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MessageCircle, Users, Star, CheckCircle, Phone, Mail, MapPin, UserPlus, Menu, X } from 'lucide-react';
+import { Search, MessageCircle, Users, Star, CheckCircle, Phone, Mail, MapPin, UserPlus, Menu, X, QrCode } from 'lucide-react';
 import { ServiceProvider, BookingData, ProviderRegistrationData, ProviderProfile } from './types';
 import { mockProviders, serviceCategories } from './data/mockData';
 import { ProviderCard } from './components/ProviderCard';
@@ -8,9 +8,10 @@ import { WhatsAppChat } from './components/WhatsAppChat';
 import { CategoryCard } from './components/CategoryCard';
 import { ProviderRegistration } from './components/ProviderRegistration';
 import { ProviderDashboard } from './components/ProviderDashboard';
+import { QRCodeGenerator } from './components/QRCodeGenerator';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'browse' | 'chat' | 'dashboard'>('browse');
+  const [activeTab, setActiveTab] = useState<'browse' | 'chat' | 'dashboard' | 'qr-generator'>('browse');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedProvider, setSelectedProvider] = useState<ServiceProvider | null>(null);
@@ -256,8 +257,15 @@ function App() {
                     <span>Browse Providers</span>
                   </button>
                   <button
-                    onClick={() => setIsRegistrationModalOpen(true)}
+                    onClick={() => setActiveTab('qr-generator')}
                     className="group bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-4 rounded-2xl font-semibold flex items-center justify-center space-x-3 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl min-w-[200px]"
+                  >
+                    <QrCode className="w-6 h-6 group-hover:animate-pulse" />
+                    <span>QR Code Generator</span>
+                  </button>
+                  <button
+                    onClick={() => setIsRegistrationModalOpen(true)}
+                    className="group bg-purple-500 hover:bg-purple-600 text-white px-8 py-4 rounded-2xl font-semibold flex items-center justify-center space-x-3 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl min-w-[200px]"
                   >
                     <UserPlus className="w-6 h-6 group-hover:animate-pulse" />
                     <span>Become a Provider</span>
@@ -269,10 +277,10 @@ function App() {
 
           {/* Tab Navigation */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex space-x-2 bg-white/80 backdrop-blur-lg p-2 rounded-2xl w-fit mx-auto shadow-lg border border-white/20">
+            <div className="flex flex-wrap justify-center space-x-2 bg-white/80 backdrop-blur-lg p-2 rounded-2xl w-fit mx-auto shadow-lg border border-white/20">
               <button
                 onClick={() => setActiveTab('browse')}
-                className={`px-8 py-4 rounded-xl font-semibold transition-all duration-300 ${
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
                   activeTab === 'browse'
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
@@ -282,13 +290,23 @@ function App() {
               </button>
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`px-8 py-4 rounded-xl font-semibold transition-all duration-300 ${
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
                   activeTab === 'chat'
                     ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg transform scale-105'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
                 WhatsApp Bot
+              </button>
+              <button
+                onClick={() => setActiveTab('qr-generator')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                  activeTab === 'qr-generator'
+                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg transform scale-105'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                }`}
+              >
+                QR Generator
               </button>
             </div>
           </div>
@@ -358,7 +376,7 @@ function App() {
                   </div>
                 )}
               </div>
-            ) : (
+            ) : activeTab === 'chat' ? (
               <div className="space-y-8">
                 <div className="text-center mb-12">
                   <h3 className="text-4xl font-bold text-gray-900 mb-6">AI-Powered WhatsApp Bot</h3>
@@ -371,7 +389,11 @@ function App() {
                   <WhatsAppChat onBookProvider={handleBookProviderFromChat} />
                 </div>
               </div>
-            )}
+            ) : activeTab === 'qr-generator' ? (
+              <div className="space-y-8">
+                <QRCodeGenerator />
+              </div>
+            ) : null}
           </main>
 
           {/* How It Works Section */}
