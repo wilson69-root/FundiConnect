@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  SUPABASE_URL = ""
+  SUPABASE_ANON_KEY = ""
+
+[dev]
+  command = "npm run dev"
+  publish = "dist"
