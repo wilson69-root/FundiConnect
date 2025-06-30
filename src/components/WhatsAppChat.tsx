@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Phone, User, CheckCheck, Bot, Sparkles, MapPin, Navigation } from 'lucide-react';
-import { ChatMessage, ServiceQuotation, ServiceProvider } from '../types';
+import { Send, CheckCheck, Bot, Sparkles } from 'lucide-react';
+import { ChatMessage, ServiceQuotation } from '../types';
 import { enhancedBotService } from '../services/enhancedBotService';
 
 interface WhatsAppChatProps {

@@ -172,7 +172,7 @@ export class MpesaService {
   }
 
   // Simulate payment for demo purposes (when API keys are not available)
-  async simulatePayment(paymentRequest: MpesaPaymentRequest): Promise<MpesaPaymentResponse> {
+  async simulatePayment(_: MpesaPaymentRequest): Promise<MpesaPaymentResponse> {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({

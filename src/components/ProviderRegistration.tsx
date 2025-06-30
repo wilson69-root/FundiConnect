@@ -78,7 +78,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
       ...prev,
       [section]: {
         ...prev[section],
-        [field]: [...(prev[section][field] as string[]), value.trim()]
+        [field]: Array.isArray((prev as any)[section]?.[field]) ? [...((prev as any)[section][field] as string[]), value.trim()] : [value.trim()]
       }
     }));
   };
@@ -88,7 +88,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
       ...prev,
       [section]: {
         ...prev[section],
-        [field]: (prev[section][field] as string[]).filter((_, i) => i !== index)
+        [field]: Array.isArray((prev as any)[section]?.[field]) ? ((prev as any)[section][field] as string[]).filter((_, i) => i !== index) : []
       }
     }));
   };

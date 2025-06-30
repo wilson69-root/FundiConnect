@@ -7,7 +7,7 @@ export class EnhancedBotService {
   async processMessage(message: string): Promise<ChatMessage[]> {
     try {
       // Get AI-powered response
-      const aiResponse = await aiService.generateFriendlyResponse(message, this.providers);
+      const aiResponse = await aiService.generateFriendlyResponse(message);
       const responses: ChatMessage[] = [];
 
       // Add the friendly AI response

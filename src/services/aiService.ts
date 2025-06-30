@@ -1,5 +1,3 @@
-import { ServiceProvider, ServiceQuotation, ChatMessage } from '../types';
-
 export interface AIResponse {
   text: string;
   intent: string;
@@ -21,7 +19,7 @@ export class AIService {
     this.baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
   }
 
-  async generateFriendlyResponse(userMessage: string, providers: ServiceProvider[] = []): Promise<AIResponse> {
+  async generateFriendlyResponse(userMessage: string): Promise<AIResponse> {
     if (!this.apiKey) {
       return this.fallbackResponse(userMessage);
     }
@@ -78,7 +76,12 @@ export class AIService {
       return {
         text: aiText,
         intent: this.determineIntent(userMessage, entities),
-        entities
+        entities: {
+          service: entities.service ?? undefined,
+          location: entities.location ?? undefined,
+          urgent: entities.urgent ?? undefined,
+          budget: entities.budget ?? undefined,
+        }
       };
 
     } catch (error) {
@@ -107,7 +110,16 @@ export class AIService {
         text = "Hey there! 😊 I'm here to help you find trusted service providers in Kenya. Just tell me what you need - like 'I need a plumber' or 'looking for house cleaning' - and I'll find the perfect match for you! 🏠✨";
     }
 
-    return { text, intent, entities };
+    return {
+      text,
+      intent,
+      entities: {
+        service: entities.service ?? undefined,
+        location: entities.location ?? undefined,
+        urgent: entities.urgent ?? undefined,
+        budget: entities.budget ?? undefined,
+      }
+    };
   }
 
   private extractEntities(message: string) {

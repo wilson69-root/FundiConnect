@@ -3,9 +3,6 @@ import { Database } from '../lib/database.types';
 import { ServiceProvider, ProviderRegistrationData, BookingData } from '../types';
 
 type Tables = Database['public']['Tables'];
-type ServiceProviderRow = Tables['service_providers']['Row'];
-type ProfileRow = Tables['profiles']['Row'];
-type ServiceCategoryRow = Tables['service_categories']['Row'];
 type BookingRow = Tables['bookings']['Row'];
 type PaymentRow = Tables['payments']['Row'];
 

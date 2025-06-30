@@ -40,7 +40,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ provider, isOpen, on
 
   const handlePaymentSuccess = (transactionId: string) => {
     if (bookingData) {
-      const finalBooking = {
+      const finalBooking: BookingData = {
         ...bookingData,
         paymentStatus: 'paid',
         transactionId

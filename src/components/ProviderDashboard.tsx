@@ -3,11 +3,14 @@ import { Star, MapPin, Clock, Calendar, DollarSign, Users, TrendingUp, Settings,
 import { ProviderProfile } from '../types';
 
 interface ProviderDashboardProps {
-  provider: ProviderProfile;
-  onUpdateProfile: (updates: Partial<ProviderProfile>) => void;
+  provider: ProviderProfile | null;
 }
 
-export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider, onUpdateProfile }) => {
+export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
+  if (!provider) {
+    return <div className="p-8 text-center text-gray-500">No provider profile found.</div>;
+  }
+
   const [activeTab, setActiveTab] = useState<'overview' | 'bookings' | 'earnings' | 'profile'>('overview');
 
   const mockBookings = [

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, MessageCircle, Users, Star, CheckCircle, Phone, Mail, MapPin, UserPlus, Menu, X, Home, Info, HelpCircle, ChevronDown, LogOut, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, MessageCircle, Users, Star, CheckCircle, Phone, Mail, UserPlus, Menu, X, ChevronDown, LogOut, User } from 'lucide-react';
 import { ServiceProvider, BookingData, ProviderRegistrationData, ProviderProfile } from './types';
 import { serviceCategories } from './data/mockData';
 import { ProviderCard } from './components/ProviderCard';
@@ -22,7 +22,7 @@ function App() {
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
-  const [currentProvider, setCurrentProvider] = useState<ProviderProfile | null>(null);
+  const [currentProvider] = useState<ProviderProfile | null>(null);
   const [providers, setProviders] = useState<ServiceProvider[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showServicesDropdown, setShowServicesDropdown] = useState(false);
@@ -124,7 +124,7 @@ function App() {
     }
 
     try {
-      const provider = await databaseService.createServiceProvider(registrationData, user.id);
+      await databaseService.createServiceProvider(registrationData, user.id);
       
       setIsRegistrationModalOpen(false);
       setActiveTab('dashboard');
@@ -139,13 +139,6 @@ function App() {
     }
   };
 
-  const handleProviderUpdate = (updates: Partial<ProviderProfile>) => {
-    if (currentProvider) {
-      const updatedProvider = { ...currentProvider, ...updates };
-      setCurrentProvider(updatedProvider);
-    }
-  };
-
   const handleJoinAsProvider = () => {
     if (!user) {
       setAuthModalMode('signup');
@@ -157,11 +150,6 @@ function App() {
 
   const handleSignIn = () => {
     setAuthModalMode('signin');
-    setIsAuthModalOpen(true);
-  };
-
-  const handleSignUp = () => {
-    setAuthModalMode('signup');
     setIsAuthModalOpen(true);
   };
 
@@ -419,8 +407,7 @@ function App() {
       {/* Show Dashboard if provider is logged in and dashboard tab is active */}
       {user?.profile?.role === 'provider' && activeTab === 'dashboard' ? (
         <ProviderDashboard 
-          provider={currentProvider} 
-          onUpdateProfile={handleProviderUpdate}
+          provider={currentProvider}
         />
       ) : (
         <>
