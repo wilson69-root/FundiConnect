@@ -24,14 +24,19 @@ export class DatabaseService {
 
     if (error) throw error;
 
-    // Create profile
+    // Wait for the user to be fully authenticated
     if (data.user) {
-      await this.createProfile({
-        id: data.user.id,
-        email,
-        full_name: fullName,
-        role: 'customer',
-      });
+      // Get the current session to ensure we're authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Now create the profile
+        await this.createProfile({
+          id: session.user.id,
+          email,
+          full_name: fullName,
+          role: 'customer',
+        });
+      }
     }
 
     return data;

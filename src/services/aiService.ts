@@ -154,6 +154,48 @@ export class AIService {
     
     return 'general';
   }
+  
+  async generateResponse(messages: any[]) {
+    try {
+      // This is a placeholder for your actual AI integration
+      // You would typically call an API like OpenAI here
+      
+      // For demonstration, we'll simulate a response
+      console.log('Generating AI response for:', messages);
+      
+      // In a real implementation, you would call your AI provider:
+      // const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      //   },
+      //   body: JSON.stringify({
+      //     model: 'gpt-4',
+      //     messages: messages,
+      //     temperature: 0.7
+      //   })
+      // });
+      // const data = await response.json();
+      // return data.choices[0].message.content;
+      
+      // Simulated response for demonstration
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
+      
+      const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
+      
+      if (lastUserMessage.toLowerCase().includes('plumbing')) {
+        return "I'd recommend checking if your water valve is fully open and if there are any visible leaks in the pipes. For persistent plumbing issues, you should hire a licensed plumber who can diagnose and fix the problem correctly. Many of our service providers specialize in plumbing repairs and can help you resolve this issue quickly.";
+      } else if (lastUserMessage.toLowerCase().includes('electrical')) {
+        return "For electrical issues, safety should be your top priority. First, check if the circuit breaker has tripped. If the problem persists, I strongly recommend hiring a certified electrician rather than attempting DIY repairs, as electrical work can be dangerous. Our platform has several qualified electricians who can help you safely resolve your electrical problems.";
+      } else {
+        return "Thank you for your question! Based on what you've described, I recommend connecting with one of our verified service providers who specializes in this area. They can provide a professional assessment and solution tailored to your specific needs. Is there any specific information you'd like to know about this type of service?";
+      }
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      throw error;
+    }
+  }
 }
 
 export const aiService = new AIService();
