@@ -16,6 +16,7 @@ export class DatabaseService {
         data: {
           full_name: fullName,
         },
+        emailRedirectTo: "https://fundiconnect.netlify.app/"
       },
     });
 
