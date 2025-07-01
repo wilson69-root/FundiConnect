@@ -11,6 +11,7 @@ import { ProviderDashboard } from './components/ProviderDashboard';
 import { AuthModal } from './components/AuthModal';
 import { useAuth } from './hooks/useAuth';
 import { databaseService } from './services/databaseService';
+import { supabase } from './lib/supabase';
 
 function App() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -27,6 +28,25 @@ function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showServicesDropdown, setShowServicesDropdown] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Handle Supabase access_token in URL after email verification or magic link
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+      const params = new URLSearchParams(hash.replace('#', ''));
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      if (access_token && refresh_token) {
+        // Set the session in Supabase
+        supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+        // Optionally, remove the hash from the URL
+        window.location.hash = '';
+      }
+    }
+  }, []);
 
   // Load providers from database
   useEffect(() => {
@@ -123,19 +143,46 @@ function App() {
       return;
     }
 
+    // Validate for NaN values in registrationData
+    const { hourlyRate, experience } = registrationData.businessInfo;
+    if (isNaN(hourlyRate) || isNaN(experience)) {
+      alert('Please enter valid numbers for hourly rate and experience.');
+      return;
+    }
+
     try {
+      // Ensure profile exists
+      let profileExists = true;
+      try {
+        await databaseService.getProfile(user.id);
+      } catch (err) {
+        profileExists = false;
+      }
+      if (!profileExists) {
+        try {
+          await databaseService.createProfile({
+            id: user.id,
+            email: user.email,
+            full_name: registrationData.personalInfo.fullName,
+            role: 'provider',
+            phone: registrationData.personalInfo.phone,
+            location: registrationData.personalInfo.location,
+            avatar_url: registrationData.personalInfo.profileImage || null,
+          });
+        } catch (err) {
+          alert('Error creating user profile. Please try again.');
+          return;
+        }
+      }
+
       await databaseService.createServiceProvider(registrationData, user.id);
-      
       setIsRegistrationModalOpen(false);
       setActiveTab('dashboard');
-      
       alert('Registration successful! Welcome to FundiConnect! Your application is under review and you will receive confirmation within 24 hours.');
-      
-      // Reload providers to include the new one
       loadProviders();
     } catch (error) {
       console.error('Error registering provider:', error);
-      alert('Error during registration. Please try again.');
+      alert('Error during registration. Please ensure your profile is complete and try again.');
     }
   };
 
