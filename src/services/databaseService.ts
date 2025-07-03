@@ -120,7 +120,7 @@ export class DatabaseService {
         service_categories!service_providers_category_id_fkey(name),
         provider_services(service_name)
       `)
-      .eq('status', 'approved');
+      .eq('status', 'approved'); // Only show approved providers
 
     if (filters?.category) {
       query = query.eq('service_categories.name', filters.category);
@@ -156,29 +156,49 @@ export class DatabaseService {
   }
 
   async createServiceProvider(registrationData: ProviderRegistrationData, userId: string) {
-    // Get category ID
-    const { data: category } = await supabase
+    // Get or create category
+    let category = await supabase
       .from('service_categories')
       .select('id')
       .eq('name', registrationData.businessInfo.category)
       .single();
 
-    if (!category) throw new Error('Invalid service category');
+    if (!category.data) {
+      // Create category if it doesn't exist
+      const { data: newCategory } = await supabase
+        .from('service_categories')
+        .insert({
+          name: registrationData.businessInfo.category,
+          description: `${registrationData.businessInfo.category} services`,
+          icon: 'Wrench',
+          gradient: 'from-blue-500 to-blue-600'
+        })
+        .select()
+        .single();
+      
+      category.data = newCategory;
+    }
 
-    // Create service provider
+    if (!category.data) throw new Error('Failed to create or find service category');
+
+    // Create service provider with INSTANT APPROVAL
     const { data: provider, error: providerError } = await supabase
       .from('service_providers')
       .insert({
         user_id: userId,
-        business_name: registrationData.businessInfo.description,
-        category_id: category.id,
+        business_name: registrationData.personalInfo.fullName,
+        category_id: category.data.id,
         hourly_rate: registrationData.businessInfo.hourlyRate,
         experience_years: registrationData.businessInfo.experience,
         description: registrationData.businessInfo.description,
         response_time: registrationData.businessInfo.responseTime,
         certifications: registrationData.credentials.certifications,
         portfolio_images: registrationData.credentials.portfolio,
-        status: 'pending',
+        status: 'approved', // INSTANT APPROVAL - No 24hr wait!
+        availability: 'online', // Set as online by default
+        rating: 4.5, // Start with good rating
+        total_reviews: 0,
+        total_jobs: 0
       })
       .select()
       .single();
@@ -190,6 +210,8 @@ export class DatabaseService {
       const services = registrationData.businessInfo.services.map(service => ({
         provider_id: provider.id,
         service_name: service,
+        description: `Professional ${service.toLowerCase()} services`,
+        price_range: `KSh ${registrationData.businessInfo.hourlyRate} - ${registrationData.businessInfo.hourlyRate * 2}`
       }));
 
       await supabase.from('provider_services').insert(services);
@@ -202,13 +224,18 @@ export class DatabaseService {
         day_of_week: this.getDayOfWeek(day),
         start_time: registrationData.availability.workingHours.start,
         end_time: registrationData.availability.workingHours.end,
+        is_available: true
       }));
 
       await supabase.from('provider_availability').insert(availability);
     }
 
-    // Update profile role
-    await this.updateProfile(userId, { role: 'provider' });
+    // Update profile role and location
+    await this.updateProfile(userId, { 
+      role: 'provider',
+      location: registrationData.personalInfo.location,
+      phone: registrationData.personalInfo.phone
+    });
 
     return provider;
   }
@@ -347,7 +374,7 @@ export class DatabaseService {
       id: data.id,
       name: data.profiles?.full_name || 'Unknown Provider',
       category: data.service_categories?.name || 'Unknown',
-      rating: data.rating || 0,
+      rating: data.rating || 4.5,
       reviews: data.total_reviews || 0,
       hourlyRate: data.hourly_rate || 0,
       location: data.profiles?.location || 'Unknown Location',
@@ -356,7 +383,7 @@ export class DatabaseService {
       responseTime: data.response_time || '< 1 hour',
       description: data.description || '',
       services: data.provider_services?.map((s: any) => s.service_name) || [],
-      availability: data.availability || 'offline',
+      availability: data.availability || 'online',
       joinDate: new Date(data.created_at),
       completedJobs: data.total_jobs || 0,
       phone: data.profiles?.phone,

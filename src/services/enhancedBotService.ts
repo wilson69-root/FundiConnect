@@ -1,11 +1,29 @@
 import { ServiceProvider, ServiceQuotation, ChatMessage } from '../types';
 import { aiService } from './aiService';
+import { databaseService } from './databaseService';
 
 export class EnhancedBotService {
-  private providers: ServiceProvider[] = []; // Start with empty array
+  private providers: ServiceProvider[] = [];
+
+  constructor() {
+    // Load providers on initialization
+    this.loadProviders();
+  }
+
+  async loadProviders() {
+    try {
+      const providers = await databaseService.getServiceProviders();
+      this.providers = providers;
+    } catch (error) {
+      console.error('Error loading providers:', error);
+    }
+  }
 
   async processMessage(message: string): Promise<ChatMessage[]> {
     try {
+      // Refresh providers list to get latest data
+      await this.loadProviders();
+
       // Get AI-powered response
       const aiResponse = await aiService.generateFriendlyResponse(message);
       const responses: ChatMessage[] = [];
@@ -19,7 +37,7 @@ export class EnhancedBotService {
         type: 'text'
       });
 
-      // If it's a service request but no providers available
+      // If it's a service request
       if (aiResponse.intent === 'service_request' && aiResponse.entities.service) {
         if (this.providers.length === 0) {
           responses.push({
@@ -30,7 +48,7 @@ export class EnhancedBotService {
             type: 'text'
           });
         } else {
-          // If we have providers, do normal matching
+          // Match providers with the service request
           const matches = this.matchProviders(
             aiResponse.entities.service,
             aiResponse.entities.location,
@@ -53,6 +71,14 @@ export class EnhancedBotService {
                 data: quotations
               });
             }
+          } else {
+            responses.push({
+              id: `bot_${Date.now() + 2}`,
+              text: `I couldn't find any ${aiResponse.entities.service} providers${aiResponse.entities.location ? ` in ${aiResponse.entities.location}` : ''} right now. 😔\n\nBut don't worry! Here's what you can do:\n• Try expanding your search area\n• Check back later as new providers join daily\n• Browse other available services\n\nWould you like me to show you what services are currently available? 🔍`,
+              isBot: true,
+              timestamp: new Date(),
+              type: 'text'
+            });
           }
         }
       }

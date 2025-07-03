@@ -11,6 +11,7 @@ import { ProviderDashboard } from './components/ProviderDashboard';
 import { AuthModal } from './components/AuthModal';
 import { useAuth } from './hooks/useAuth';
 import { databaseService } from './services/databaseService';
+import { enhancedBotService } from './services/enhancedBotService';
 import { supabase } from './lib/supabase';
 
 function App() {
@@ -60,6 +61,9 @@ function App() {
         category: selectedCategory || undefined,
       });
       setProviders(data);
+      
+      // Update the enhanced bot service with new providers
+      enhancedBotService.updateProviders(data);
     } catch (error) {
       console.error('Error loading providers:', error);
     } finally {
@@ -75,7 +79,8 @@ function App() {
   const filteredProviders = providers.filter(provider => {
     const matchesSearch = provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          provider.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         provider.location.toLowerCase().includes(searchQuery.toLowerCase());
+                         provider.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         provider.services.some(service => service.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = !selectedCategory || provider.category.toLowerCase() === selectedCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
@@ -178,8 +183,11 @@ function App() {
       await databaseService.createServiceProvider(registrationData, user.id);
       setIsRegistrationModalOpen(false);
       setActiveTab('dashboard');
-      alert('Registration successful! Welcome to FundiConnect! Your application is under review and you will receive confirmation within 24 hours.');
-      loadProviders();
+      
+      // Reload providers to show the new one immediately
+      await loadProviders();
+      
+      alert('Registration successful! Welcome to FundiConnect! Your profile is now live and customers can find you immediately!');
     } catch (error) {
       console.error('Error registering provider:', error);
       alert('Error during registration. Please ensure your profile is complete and try again.');
