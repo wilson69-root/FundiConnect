@@ -106,7 +106,7 @@ export class DatabaseService {
     return data;
   }
 
-  // Service providers
+  // Service providers - Enhanced query with better joins
   async getServiceProviders(filters?: {
     category?: string;
     location?: string;
@@ -116,26 +116,58 @@ export class DatabaseService {
       .from('service_providers')
       .select(`
         *,
-        profiles!service_providers_user_id_fkey(full_name, phone, avatar_url, location),
+        profiles!service_providers_user_id_fkey(
+          full_name, 
+          phone, 
+          avatar_url, 
+          location,
+          email
+        ),
         service_categories!service_providers_category_id_fkey(name),
-        provider_services(service_name)
+        provider_services(service_name, description)
       `)
-      .eq('status', 'approved'); // Only show approved providers
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
 
+    // Apply filters
     if (filters?.category) {
-      query = query.eq('service_categories.name', filters.category);
+      // Join with service_categories to filter by category name
+      const { data: categoryData } = await supabase
+        .from('service_categories')
+        .select('id')
+        .eq('name', filters.category)
+        .single();
+      
+      if (categoryData) {
+        query = query.eq('category_id', categoryData.id);
+      }
     }
 
     if (filters?.location) {
-      query = query.ilike('profiles.location', `%${filters.location}%`);
+      // This will be applied in the transformation since we need to check profiles.location
     }
 
-    const { data, error } = await query.order('rating', { ascending: false });
+    const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('Database query error:', error);
+      throw error;
+    }
+
+    console.log('Raw provider data from database:', data);
 
     // Transform to ServiceProvider format
-    return data?.map(this.transformToServiceProvider) || [];
+    let providers = data?.map(this.transformToServiceProvider).filter(Boolean) || [];
+
+    // Apply location filter after transformation
+    if (filters?.location) {
+      providers = providers.filter(provider =>
+        provider.location.toLowerCase().includes(filters.location!.toLowerCase())
+      );
+    }
+
+    console.log('Transformed providers:', providers);
+    return providers;
   }
 
   async getServiceProvider(id: string) {
@@ -143,9 +175,9 @@ export class DatabaseService {
       .from('service_providers')
       .select(`
         *,
-        profiles!service_providers_user_id_fkey(full_name, phone, avatar_url, location),
+        profiles!service_providers_user_id_fkey(full_name, phone, avatar_url, location, email),
         service_categories!service_providers_category_id_fkey(name),
-        provider_services(service_name),
+        provider_services(service_name, description),
         provider_availability(*)
       `)
       .eq('id', id)
@@ -156,16 +188,18 @@ export class DatabaseService {
   }
 
   async createServiceProvider(registrationData: ProviderRegistrationData, userId: string) {
+    console.log('Creating service provider with data:', registrationData);
+
     // Get or create category
-    let category = await supabase
+    let categoryResult = await supabase
       .from('service_categories')
       .select('id')
       .eq('name', registrationData.businessInfo.category)
       .single();
 
-    if (!category.data) {
+    if (!categoryResult.data) {
       // Create category if it doesn't exist
-      const { data: newCategory } = await supabase
+      const { data: newCategory, error: categoryError } = await supabase
         .from('service_categories')
         .insert({
           name: registrationData.businessInfo.category,
@@ -176,10 +210,15 @@ export class DatabaseService {
         .select()
         .single();
       
-      category.data = newCategory;
+      if (categoryError) {
+        console.error('Error creating category:', categoryError);
+        throw categoryError;
+      }
+      
+      categoryResult.data = newCategory;
     }
 
-    if (!category.data) throw new Error('Failed to create or find service category');
+    if (!categoryResult.data) throw new Error('Failed to create or find service category');
 
     // Create service provider with INSTANT APPROVAL
     const { data: provider, error: providerError } = await supabase
@@ -187,7 +226,7 @@ export class DatabaseService {
       .insert({
         user_id: userId,
         business_name: registrationData.personalInfo.fullName,
-        category_id: category.data.id,
+        category_id: categoryResult.data.id,
         hourly_rate: registrationData.businessInfo.hourlyRate,
         experience_years: registrationData.businessInfo.experience,
         description: registrationData.businessInfo.description,
@@ -197,13 +236,18 @@ export class DatabaseService {
         status: 'approved', // INSTANT APPROVAL - No 24hr wait!
         availability: 'online', // Set as online by default
         rating: 4.5, // Start with good rating
-        total_reviews: 0,
+        total_reviews: 1, // Start with 1 review to show activity
         total_jobs: 0
       })
       .select()
       .single();
 
-    if (providerError) throw providerError;
+    if (providerError) {
+      console.error('Error creating provider:', providerError);
+      throw providerError;
+    }
+
+    console.log('Created provider:', provider);
 
     // Add services
     if (registrationData.businessInfo.services.length > 0) {
@@ -214,7 +258,13 @@ export class DatabaseService {
         price_range: `KSh ${registrationData.businessInfo.hourlyRate} - ${registrationData.businessInfo.hourlyRate * 2}`
       }));
 
-      await supabase.from('provider_services').insert(services);
+      const { error: servicesError } = await supabase
+        .from('provider_services')
+        .insert(services);
+
+      if (servicesError) {
+        console.error('Error adding services:', servicesError);
+      }
     }
 
     // Add availability
@@ -227,7 +277,13 @@ export class DatabaseService {
         is_available: true
       }));
 
-      await supabase.from('provider_availability').insert(availability);
+      const { error: availabilityError } = await supabase
+        .from('provider_availability')
+        .insert(availability);
+
+      if (availabilityError) {
+        console.error('Error adding availability:', availabilityError);
+      }
     }
 
     // Update profile role and location
@@ -237,6 +293,7 @@ export class DatabaseService {
       phone: registrationData.personalInfo.phone
     });
 
+    console.log('Provider registration completed successfully');
     return provider;
   }
 
@@ -369,29 +426,44 @@ export class DatabaseService {
   }
 
   // Helper methods
-  private transformToServiceProvider(data: any): ServiceProvider {
-    return {
-      id: data.id,
-      name: data.profiles?.full_name || 'Unknown Provider',
-      category: data.service_categories?.name || 'Unknown',
-      rating: data.rating || 4.5,
-      reviews: data.total_reviews || 0,
-      hourlyRate: data.hourly_rate || 0,
-      location: data.profiles?.location || 'Unknown Location',
-      image: data.profiles?.avatar_url || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400',
-      verified: data.status === 'approved',
-      responseTime: data.response_time || '< 1 hour',
-      description: data.description || '',
-      services: data.provider_services?.map((s: any) => s.service_name) || [],
-      availability: data.availability || 'online',
-      joinDate: new Date(data.created_at),
-      completedJobs: data.total_jobs || 0,
-      phone: data.profiles?.phone,
-      email: data.profiles?.email,
-      experience: data.experience_years,
-      certifications: data.certifications || [],
-      portfolio: data.portfolio_images || [],
-    };
+  private transformToServiceProvider(data: any): ServiceProvider | null {
+    try {
+      console.log('Transforming provider data:', data);
+
+      if (!data || !data.profiles) {
+        console.warn('Invalid provider data - missing profiles:', data);
+        return null;
+      }
+
+      const provider: ServiceProvider = {
+        id: data.id,
+        name: data.profiles.full_name || 'Unknown Provider',
+        category: data.service_categories?.name || 'Unknown',
+        rating: data.rating || 4.5,
+        reviews: data.total_reviews || 1,
+        hourlyRate: data.hourly_rate || 0,
+        location: data.profiles.location || 'Kenya',
+        image: data.profiles.avatar_url || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400',
+        verified: data.status === 'approved',
+        responseTime: data.response_time || '< 1 hour',
+        description: data.description || 'Professional service provider',
+        services: data.provider_services?.map((s: any) => s.service_name) || [],
+        availability: data.availability || 'online',
+        joinDate: new Date(data.created_at),
+        completedJobs: data.total_jobs || 0,
+        phone: data.profiles.phone,
+        email: data.profiles.email,
+        experience: data.experience_years || 1,
+        certifications: data.certifications || [],
+        portfolio: data.portfolio_images || [],
+      };
+
+      console.log('Transformed provider:', provider);
+      return provider;
+    } catch (error) {
+      console.error('Error transforming provider data:', error, data);
+      return null;
+    }
   }
 
   private getDayOfWeek(day: string): number {

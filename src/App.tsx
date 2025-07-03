@@ -52,13 +52,17 @@ function App() {
 
   // Load providers from database with better error handling
   useEffect(() => {
-    loadProviders();
-  }, []);
+    if (!authLoading) {
+      loadProviders();
+    }
+  }, [authLoading]);
 
   const loadProviders = async () => {
     try {
       setLoading(true);
       setConnectionError(null);
+      
+      console.log('Loading providers...');
       
       // Test Supabase connection first
       const { data: testData, error: testError } = await supabase
@@ -78,6 +82,7 @@ function App() {
         category: selectedCategory || undefined,
       });
       
+      console.log('Loaded providers:', data);
       setProviders(data);
       
       // Update the enhanced bot service with new providers
@@ -104,7 +109,8 @@ function App() {
     const matchesSearch = provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          provider.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          provider.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         provider.services.some(service => service.toLowerCase().includes(searchQuery.toLowerCase()));
+                         provider.services.some(service => service.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                         provider.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = !selectedCategory || provider.category.toLowerCase() === selectedCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
@@ -212,6 +218,9 @@ function App() {
       
       // Reload providers to show the new one immediately
       await loadProviders();
+      
+      // Force refresh the bot service providers
+      await enhancedBotService.refreshProviders();
       
       alert('Registration successful! Welcome to FundiConnect! Your profile is now live and customers can find you immediately!');
     } catch (error) {
