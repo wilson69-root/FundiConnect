@@ -557,15 +557,15 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
               </div>
             </div>
 
-            {/* Free Registration Notice */}
+            {/* Instant Approval Notice */}
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
               <div className="text-center">
                 <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Check className="w-8 h-8 text-green-600" />
                 </div>
-                <h4 className="text-xl font-semibold text-green-900 mb-2">Free Registration!</h4>
-                <p className="text-green-700 text-lg font-medium mb-2">Join FundiConnect at no cost</p>
-                <p className="text-green-600 text-sm">Help us test our platform and get early access to customers</p>
+                <h4 className="text-xl font-semibold text-green-900 mb-2">Instant Approval!</h4>
+                <p className="text-green-700 text-lg font-medium mb-2">Go live immediately - No waiting!</p>
+                <p className="text-green-600 text-sm">Your profile will be active and searchable as soon as you complete registration</p>
               </div>
             </div>
           </div>
@@ -662,7 +662,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
                 disabled={!validateStep(currentStep)}
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
-                Complete Free Registration
+                Go Live Instantly - FREE!
               </button>
             )}
           </div>
