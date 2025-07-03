@@ -19,13 +19,28 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true;
 
-    // Get initial session with timeout
+    // Get initial session with improved error handling
     const initializeAuth = async () => {
       try {
+        // Check if Supabase is properly configured
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey || 
+            supabaseUrl === 'https://placeholder.supabase.co' || 
+            supabaseKey === 'placeholder-key') {
+          console.warn('Supabase not configured. Running in offline mode.');
+          if (mounted) {
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Increase timeout and add better error handling
         const { data: { session }, error } = await Promise.race([
           supabase.auth.getSession(),
           new Promise<{ data: { session: null }, error: Error }>((_, reject) => 
-            setTimeout(() => reject(new Error('Auth timeout')), 10000)
+            setTimeout(() => reject(new Error('Auth timeout - please check your internet connection')), 15000)
           )
         ]);
 
@@ -52,16 +67,23 @@ export function useAuth() {
 
     initializeAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes with error handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
-        if (session?.user) {
-          await loadUserProfile(session.user);
-        } else {
-          setUser(null);
-          setLoading(false);
+        try {
+          if (session?.user) {
+            await loadUserProfile(session.user);
+          } else {
+            setUser(null);
+            setLoading(false);
+          }
+        } catch (error) {
+          console.error('Auth state change error:', error);
+          if (mounted) {
+            setLoading(false);
+          }
         }
       }
     );
@@ -86,6 +108,7 @@ export function useAuth() {
       });
     } catch (error) {
       console.error('Error loading user profile:', error);
+      // Still set the user even if profile loading fails
       setUser(authUser as AuthUser);
     } finally {
       setLoading(false);
