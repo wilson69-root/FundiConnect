@@ -308,6 +308,9 @@ const language = detectLanguage(message);
 const responses = await botService.processMessage(message, userId, userName, language);
 ```
 
+hello bois am testing git
+
+
 Your FundiConnect WhatsApp bot is now ready to provide intelligent service provider recommendations with advanced AI capabilities! 🚀
 
 ## 📞 Support
