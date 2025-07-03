@@ -17,18 +17,46 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadUserProfile(session.user);
-      } else {
-        setLoading(false);
+    let mounted = true;
+
+    // Get initial session with timeout
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: null }, error: Error }>((_, reject) => 
+            setTimeout(() => reject(new Error('Auth timeout')), 10000)
+          )
+        ]);
+
+        if (!mounted) return;
+
+        if (error) {
+          console.error('Auth initialization error:', error);
+          setLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          await loadUserProfile(session.user);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Auth initialization failed:', error);
+        if (mounted) {
+          setLoading(false);
+        }
       }
-    });
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        if (!mounted) return;
+
         if (session?.user) {
           await loadUserProfile(session.user);
         } else {
@@ -38,7 +66,10 @@ export function useAuth() {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadUserProfile = async (authUser: User) => {
@@ -66,6 +97,9 @@ export function useAuth() {
     try {
       const data = await databaseService.signUp(email, password, fullName);
       return data;
+    } catch (error) {
+      console.error('Sign up error:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -76,6 +110,9 @@ export function useAuth() {
     try {
       const data = await databaseService.signIn(email, password);
       return data;
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -85,6 +122,8 @@ export function useAuth() {
     setLoading(true);
     try {
       await databaseService.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
     } finally {
       setLoading(false);
     }

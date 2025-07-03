@@ -28,7 +28,8 @@ function App() {
   const [providers, setProviders] = useState<ServiceProvider[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showServicesDropdown, setShowServicesDropdown] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Handle Supabase access_token in URL after email verification or magic link
   useEffect(() => {
@@ -49,7 +50,7 @@ function App() {
     }
   }, []);
 
-  // Load providers from database
+  // Load providers from database with better error handling
   useEffect(() => {
     loadProviders();
   }, []);
@@ -57,15 +58,36 @@ function App() {
   const loadProviders = async () => {
     try {
       setLoading(true);
+      setConnectionError(null);
+      
+      // Test Supabase connection first
+      const { data: testData, error: testError } = await supabase
+        .from('service_categories')
+        .select('count')
+        .limit(1);
+      
+      if (testError) {
+        console.error('Supabase connection error:', testError);
+        setConnectionError('Database connection failed. Using demo mode.');
+        // Use mock data as fallback
+        setProviders([]);
+        return;
+      }
+
       const data = await databaseService.getServiceProviders({
         category: selectedCategory || undefined,
       });
+      
       setProviders(data);
       
       // Update the enhanced bot service with new providers
       enhancedBotService.updateProviders(data);
+      
     } catch (error) {
       console.error('Error loading providers:', error);
+      setConnectionError('Failed to load providers. Please check your connection.');
+      // Use empty array as fallback
+      setProviders([]);
     } finally {
       setLoading(false);
     }
@@ -73,8 +95,10 @@ function App() {
 
   // Reload providers when category changes
   useEffect(() => {
-    loadProviders();
-  }, [selectedCategory]);
+    if (!authLoading) {
+      loadProviders();
+    }
+  }, [selectedCategory, authLoading]);
 
   const filteredProviders = providers.filter(provider => {
     const matchesSearch = provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -156,6 +180,8 @@ function App() {
     }
 
     try {
+      setLoading(true);
+      
       // Ensure profile exists
       let profileExists = true;
       try {
@@ -191,6 +217,8 @@ function App() {
     } catch (error) {
       console.error('Error registering provider:', error);
       alert('Error during registration. Please ensure your profile is complete and try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -224,7 +252,7 @@ function App() {
             <Users className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">FundiConnect</h2>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Initializing...</p>
         </div>
       </div>
     );
@@ -551,6 +579,24 @@ function App() {
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
             {activeTab === 'browse' ? (
               <div className="space-y-8">
+                {/* Connection Error Banner */}
+                {connectionError && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
+                        <span className="text-yellow-800 text-xs">!</span>
+                      </div>
+                      <p className="text-yellow-800 font-medium">{connectionError}</p>
+                    </div>
+                    <button
+                      onClick={loadProviders}
+                      className="mt-2 text-yellow-700 hover:text-yellow-900 underline text-sm"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
+
                 {/* Search and Filters */}
                 <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-white/20">
                   <div className="relative mb-6">
