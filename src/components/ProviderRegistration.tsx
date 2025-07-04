@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Briefcase, Shield, Clock, Upload, Plus, X, Check, AlertCircle } from 'lucide-react';
+import { User, Briefcase, Clock, Upload, Plus, X, Check, AlertCircle } from 'lucide-react';
 import { ProviderRegistrationData } from '../types';
 import { serviceCategories } from '../data/mockData';
 
@@ -43,14 +43,12 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
   });
 
   const [newService, setNewService] = useState('');
-  const [newCertification, setNewCertification] = useState('');
   const [newServiceArea, setNewServiceArea] = useState('');
 
   const steps = [
     { id: 1, title: 'Personal Info', icon: User },
     { id: 2, title: 'Business Details', icon: Briefcase },
-    { id: 3, title: 'Credentials', icon: Shield },
-    { id: 4, title: 'Availability', icon: Clock }
+    { id: 3, title: 'Availability', icon: Clock }
   ];
 
   const workingDaysOptions = [
@@ -111,8 +109,6 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
         return !!(formData.businessInfo.category && formData.businessInfo.services.length > 0 && 
                  formData.businessInfo.hourlyRate > 0 && formData.businessInfo.description);
       case 3:
-        return true; // Optional step
-      case 4:
         return !!(formData.availability.workingDays.length > 0 && 
                  formData.availability.serviceAreas.length > 0);
       default:
@@ -122,7 +118,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
+      setCurrentStep(prev => Math.min(prev + 1, 3));
     }
   };
 
@@ -131,7 +127,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
   };
 
   const handleSubmit = () => {
-    if (validateStep(4)) {
+    if (validateStep(3)) {
       // Add free registration info
       const finalData = {
         ...formData,
@@ -213,12 +209,12 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Profile Image
+                Profile Image (Optional)
               </label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
                 <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-gray-600">Click to upload or drag and drop</p>
-                <p className="text-sm text-gray-500">PNG, JPG up to 5MB</p>
+                <p className="text-sm text-gray-500">PNG, JPG up to 5MB (Optional)</p>
               </div>
             </div>
           </div>
@@ -357,97 +353,6 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
         );
 
       case 3:
-        return (
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Credentials & Portfolio</h3>
-              <p className="text-gray-600">Build trust with your credentials</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Certifications
-              </label>
-              <div className="flex space-x-2 mb-3">
-                <input
-                  type="text"
-                  value={newCertification}
-                  onChange={(e) => setNewCertification(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Add a certification"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleArrayAdd('credentials', 'certifications', newCertification);
-                      setNewCertification('');
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleArrayAdd('credentials', 'certifications', newCertification);
-                    setNewCertification('');
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.credentials.certifications.map((cert, index) => (
-                  <span
-                    key={index}
-                    className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1"
-                  >
-                    <span>{cert}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleArrayRemove('credentials', 'certifications', index)}
-                      className="text-green-600 hover:text-green-800"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ID Document
-                </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
-                  <Upload className="w-6 h-6 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">Upload ID copy</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Business License (Optional)
-                </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
-                  <Upload className="w-6 h-6 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">Upload license</p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Portfolio Images
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
-                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-600">Upload your work samples</p>
-                <p className="text-sm text-gray-500">Multiple images allowed</p>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 4:
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
@@ -648,7 +553,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
               </div>
             )}
             
-            {currentStep < 4 ? (
+            {currentStep < 3 ? (
               <button
                 onClick={handleNext}
                 disabled={!validateStep(currentStep)}

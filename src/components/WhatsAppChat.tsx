@@ -11,7 +11,7 @@ export const WhatsAppChat: React.FC<WhatsAppChatProps> = ({ onBookProvider }) =>
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
-      text: "Habari! 👋 Welcome to FundiConnect! I'm your friendly AI assistant, and I'm super excited to help you find the perfect service provider today! 🌟\n\nJust tell me what you need - like 'I need a plumber' or 'looking for house cleaning' - and I'll work my magic to find you amazing options! ✨\n\nNote: Since we're just getting started, we don't have many providers yet, but you can still see how our AI matching works!",
+      text: "Habari! 👋 Welcome to FundiConnect! I'm your friendly AI assistant, and I'm super excited to help you find the perfect service provider today! 🌟\n\nJust tell me what you need - like 'I need a plumber' or 'looking for house cleaning' - and I'll work my magic to find you amazing options! ✨\n\nYou don't need to sign up to search - I'm here to help everyone! 🚀",
       isBot: true,
       timestamp: new Date(),
       type: 'text'
@@ -32,6 +32,8 @@ export const WhatsAppChat: React.FC<WhatsAppChatProps> = ({ onBookProvider }) =>
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
 
+    console.log('🗣️ User sending message:', inputText);
+
     const userMessage: ChatMessage = {
       id: `user_${Date.now()}`,
       text: inputText,
@@ -44,12 +46,36 @@ export const WhatsAppChat: React.FC<WhatsAppChatProps> = ({ onBookProvider }) =>
     setInputText('');
     setIsTyping(true);
 
-    // Simulate realistic typing delay
-    setTimeout(async () => {
-      const botResponses = await enhancedBotService.processMessage(inputText);
-      setMessages(prev => [...prev, ...botResponses]);
+    try {
+      // Simulate realistic typing delay
+      setTimeout(async () => {
+        try {
+          console.log('🤖 Processing message with enhanced bot service...');
+          const botResponses = await enhancedBotService.processMessage(inputText);
+          console.log('✅ Bot responses received:', botResponses);
+          
+          setMessages(prev => [...prev, ...botResponses]);
+        } catch (error) {
+          console.error('❌ Error processing message:', error);
+          
+          // Fallback response
+          const fallbackResponse: ChatMessage = {
+            id: `bot_error_${Date.now()}`,
+            text: "Oops! I'm having a small hiccup. 😅 But I'm still here to help! Could you please try again? I'm ready to find you the perfect service provider! 💪",
+            isBot: true,
+            timestamp: new Date(),
+            type: 'text'
+          };
+          
+          setMessages(prev => [...prev, fallbackResponse]);
+        } finally {
+          setIsTyping(false);
+        }
+      }, 1500 + Math.random() * 1000);
+    } catch (error) {
+      console.error('❌ Error in message handling:', error);
       setIsTyping(false);
-    }, 1500 + Math.random() * 1000);
+    }
   };
 
   const formatTime = (timestamp: Date) => {
@@ -116,7 +142,7 @@ export const WhatsAppChat: React.FC<WhatsAppChatProps> = ({ onBookProvider }) =>
             <h3 className="font-bold text-lg">FundiConnect AI Assistant</h3>
             <p className="text-green-100 text-sm flex items-center space-x-2">
               <span className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
-              <span>Online • Powered by Advanced AI</span>
+              <span>Online • Available to Everyone</span>
             </p>
           </div>
         </div>
@@ -197,10 +223,11 @@ export const WhatsAppChat: React.FC<WhatsAppChatProps> = ({ onBookProvider }) =>
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder="Type your message... (e.g., 'I need a plumber')"
               className="flex-1 px-6 py-4 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all duration-300 text-lg bg-white/70 backdrop-blur-sm"
+              disabled={isTyping}
             />
             <button
               onClick={handleSendMessage}
-              disabled={!inputText.trim()}
+              disabled={!inputText.trim() || isTyping}
               className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 rounded-2xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
             >
               <Send className="w-6 h-6" />

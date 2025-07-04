@@ -5,7 +5,7 @@ import { databaseService } from './databaseService';
 export class EnhancedBotService {
   private providers: ServiceProvider[] = [];
   private lastUpdate: number = 0;
-  private updateInterval: number = 10000; // Reduced to 10 seconds for faster updates
+  private updateInterval: number = 10000; // 10 seconds for faster updates
   private isLoading: boolean = false;
 
   constructor() {
@@ -32,7 +32,7 @@ export class EnhancedBotService {
       const providers = await databaseService.getServiceProviders();
       this.providers = providers;
       this.lastUpdate = Date.now();
-      console.log(`✅ Loaded ${providers.length} providers for bot service:`, 
+      console.log(`✅ Bot service loaded ${providers.length} providers:`, 
         providers.map(p => ({ name: p.name, category: p.category, location: p.location })));
     } catch (error) {
       console.error('❌ Error loading providers for bot service:', error);
@@ -66,15 +66,20 @@ export class EnhancedBotService {
 
   async processMessage(message: string): Promise<ChatMessage[]> {
     try {
-      // Always refresh providers for non-authenticated users to get latest data
+      console.log(`🤖 Processing message: "${message}"`);
+      console.log(`📊 Current providers available: ${this.providers.length}`);
+
+      // Always refresh providers to get latest data (especially for non-authenticated users)
       if (Date.now() - this.lastUpdate > 5000) { // Refresh every 5 seconds
+        console.log('🔄 Refreshing providers for latest data...');
         await this.loadProviders();
       }
 
-      console.log(`🤖 Processing message: "${message}" with ${this.providers.length} providers available`);
-
       // Get AI-powered response
+      console.log('🧠 Getting AI response...');
       const aiResponse = await aiService.generateFriendlyResponse(message);
+      console.log('✅ AI response received:', aiResponse);
+      
       const responses: ChatMessage[] = [];
 
       // Add the friendly AI response
@@ -89,7 +94,7 @@ export class EnhancedBotService {
       // If it's a service request
       if (aiResponse.intent === 'service_request' && aiResponse.entities.service) {
         console.log(`🔍 Service request detected: ${aiResponse.entities.service}`);
-        console.log(`📊 Available providers:`, this.providers.map(p => ({ 
+        console.log(`📊 Available providers for matching:`, this.providers.map(p => ({ 
           name: p.name, 
           category: p.category, 
           location: p.location,
@@ -98,9 +103,11 @@ export class EnhancedBotService {
 
         if (this.providers.length === 0) {
           // Force refresh one more time
+          console.log('⚠️ No providers found, forcing refresh...');
           await this.refreshProviders();
           
           if (this.providers.length === 0) {
+            console.log('❌ Still no providers after refresh');
             responses.push({
               id: `bot_${Date.now() + 1}`,
               text: `I understand you're looking for ${aiResponse.entities.service} services! 🔍 
@@ -121,6 +128,8 @@ We're actively recruiting service providers, so check back soon! In the meantime
             });
           }
         } else {
+          console.log(`✅ Found ${this.providers.length} providers, starting matching...`);
+          
           // Match providers with the service request
           const matches = this.matchProviders(
             aiResponse.entities.service,
@@ -139,6 +148,8 @@ We're actively recruiting service providers, so check back soon! In the meantime
             const quotations = matches.map(provider => 
               this.generateQuotation(provider, aiResponse.entities.service!, aiResponse.entities.urgent)
             ).filter(q => q !== null);
+
+            console.log(`💰 Generated ${quotations.length} quotations`);
 
             if (quotations.length > 0) {
               responses.push({
@@ -197,6 +208,7 @@ We're actively recruiting service providers, so check back soon! In the meantime
         }
       }
 
+      console.log(`✅ Returning ${responses.length} responses`);
       return responses;
     } catch (error) {
       console.error('❌ Enhanced bot service error:', error);
