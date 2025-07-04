@@ -172,13 +172,13 @@ CREATE POLICY "Users can insert own profile"
 -- Service categories policies (public read)
 CREATE POLICY "Anyone can view service categories"
   ON service_categories FOR SELECT
-  TO authenticated
+  TO public
   USING (true);
 
 -- Service providers policies
 CREATE POLICY "Anyone can view approved providers"
   ON service_providers FOR SELECT
-  TO authenticated
+  TO public
   USING (status = 'approved');
 
 CREATE POLICY "Providers can view own data"
@@ -199,7 +199,7 @@ CREATE POLICY "Providers can insert own data"
 -- Provider services policies
 CREATE POLICY "Anyone can view provider services"
   ON provider_services FOR SELECT
-  TO authenticated
+  TO public
   USING (true);
 
 CREATE POLICY "Providers can manage own services"
@@ -212,7 +212,7 @@ CREATE POLICY "Providers can manage own services"
 -- Provider availability policies
 CREATE POLICY "Anyone can view provider availability"
   ON provider_availability FOR SELECT
-  TO authenticated
+  TO public
   USING (true);
 
 CREATE POLICY "Providers can manage own availability"
@@ -270,7 +270,7 @@ CREATE POLICY "System can manage payments"
 -- Reviews policies
 CREATE POLICY "Anyone can view reviews"
   ON reviews FOR SELECT
-  TO authenticated
+  TO public
   USING (true);
 
 CREATE POLICY "Customers can create reviews"

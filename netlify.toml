@@ -3,8 +3,9 @@
   publish = "dist"
 
 [build.environment]
-  SUPABASE_URL = ""
-  SUPABASE_ANON_KEY = ""
+  # Set these in the Netlify UI for security:
+  # VITE_SUPABASE_URL = "YOUR_SUPABASE_URL_HERE"
+  # VITE_SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY_HERE"
 
 [dev]
   command = "npm run dev"

@@ -100,21 +100,65 @@ export function useAuth() {
     try {
       console.log('Loading profile for user:', authUser.email);
       const profile = await databaseService.getProfile(authUser.id);
-      console.log('Profile loaded:', profile);
       
-      setUser({
-        ...authUser,
-        profile: {
-          full_name: profile.full_name,
-          role: profile.role,
-          phone: profile.phone || undefined,
-          location: profile.location || undefined,
-        },
-      });
+      if (!profile) {
+        console.warn('No profile found for user, creating one...');
+        // Create a basic profile for the user
+        try {
+          const newProfile = await databaseService.createProfile({
+            id: authUser.id,
+            email: authUser.email || '',
+            full_name: authUser.user_metadata?.full_name || authUser.email || '',
+            role: 'customer',
+          });
+          console.log('Profile created successfully:', newProfile);
+          
+          setUser({
+            ...authUser,
+            profile: {
+              full_name: newProfile.full_name,
+              role: newProfile.role,
+              phone: newProfile.phone || undefined,
+              location: newProfile.location || undefined,
+            },
+          });
+        } catch (createError) {
+          console.error('Error creating profile:', createError);
+          // Fall back to basic user without profile
+          setUser({
+            ...authUser,
+            profile: {
+              full_name: authUser.user_metadata?.full_name || authUser.email || '',
+              role: 'customer',
+              phone: undefined,
+              location: undefined,
+            },
+          });
+        }
+      } else {
+        console.log('Profile loaded:', profile);
+        setUser({
+          ...authUser,
+          profile: {
+            full_name: profile.full_name,
+            role: profile.role,
+            phone: profile.phone || undefined,
+            location: profile.location || undefined,
+          },
+        });
+      }
     } catch (error) {
       console.error('Error loading user profile:', error);
       // Still set the user even if profile loading fails
-      setUser(authUser as AuthUser);
+      setUser({
+        ...authUser,
+        profile: {
+          full_name: authUser.user_metadata?.full_name || authUser.email || '',
+          role: 'customer',
+          phone: undefined,
+          location: undefined,
+        },
+      });
     } finally {
       setLoading(false);
     }

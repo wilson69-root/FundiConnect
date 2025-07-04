@@ -71,7 +71,7 @@ function App() {
       if (testError) {
         console.error('❌ Supabase connection error:', testError);
         setConnectionError('Database connection failed. Using demo mode.');
-        setProviders([]);
+        // setProviders([]); // Keep existing providers on a failed refresh
         return;
       }
 
@@ -91,7 +91,7 @@ function App() {
     } catch (error) {
       console.error('❌ Error loading providers:', error);
       setConnectionError('Failed to load providers. Please check your connection.');
-      setProviders([]);
+      // setProviders([]); // Keep existing providers on a failed refresh
     } finally {
       setLoading(false);
     }

@@ -100,14 +100,20 @@ export class DatabaseService {
     }
   }
 
-  async getProfile(userId: string) {
+  async getProfile(userId: string): Promise<Tables['profiles']['Row'] | null> {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // If profile doesn't exist, return null instead of throwing
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw error;
+    }
     return data;
   }
 
@@ -260,10 +266,9 @@ export class DatabaseService {
 
       // Ensure we have a valid user profile first
       let profile;
-      try {
-        profile = await this.getProfile(userId);
-        console.log('✅ Found existing profile:', profile);
-      } catch (profileError) {
+      profile = await this.getProfile(userId);
+      
+      if (!profile) {
         console.log('⚠️ Profile not found, creating one...');
         profile = await this.createProfile({
           id: userId,
@@ -273,6 +278,8 @@ export class DatabaseService {
           phone: registrationData.personalInfo.phone,
           location: registrationData.personalInfo.location,
         });
+      } else {
+        console.log('✅ Found existing profile:', profile);
       }
 
       // Get or create category
