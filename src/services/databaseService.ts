@@ -23,21 +23,6 @@ export class DatabaseService {
 
     if (error) throw error;
 
-    // Create profile immediately without waiting for email confirmation
-    if (data.user) {
-      try {
-        await this.createProfile({
-          id: data.user.id,
-          email,
-          full_name: fullName,
-          role: 'customer',
-        });
-        console.log('✅ Profile created successfully for:', email);
-      } catch (profileError) {
-        console.error('❌ Error creating profile:', profileError);
-        // Don't throw here - user can still sign in
-      }
-    }
 
     return data;
   }

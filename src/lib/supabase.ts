@@ -64,7 +64,7 @@ export const testConnection = async () => {
   }
 
   try {
-    const { data, error } = await Promise.race([
+    const { error } = await Promise.race([
       supabase.from('service_categories').select('count').limit(1),
       new Promise<{ data: null, error: Error }>((_, reject) => 
         setTimeout(() => reject(new Error('Connection timeout')), 10000)
