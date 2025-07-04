@@ -5,39 +5,73 @@ import { databaseService } from './databaseService';
 export class EnhancedBotService {
   private providers: ServiceProvider[] = [];
   private lastUpdate: number = 0;
-  private updateInterval: number = 30000; // 30 seconds
+  private updateInterval: number = 10000; // Reduced to 10 seconds for faster updates
+  private isLoading: boolean = false;
 
   constructor() {
     // Load providers on initialization
     this.loadProviders();
+    
+    // Set up periodic refresh
+    setInterval(() => {
+      if (!this.isLoading) {
+        this.loadProviders();
+      }
+    }, this.updateInterval);
   }
 
   async loadProviders() {
+    if (this.isLoading) {
+      console.log('⏳ Provider loading already in progress, skipping...');
+      return;
+    }
+
+    this.isLoading = true;
     try {
-      console.log('Loading providers for bot service...');
+      console.log('🔄 Loading providers for bot service...');
       const providers = await databaseService.getServiceProviders();
       this.providers = providers;
       this.lastUpdate = Date.now();
-      console.log(`Loaded ${providers.length} providers for bot service:`, providers);
+      console.log(`✅ Loaded ${providers.length} providers for bot service:`, 
+        providers.map(p => ({ name: p.name, category: p.category, location: p.location })));
     } catch (error) {
-      console.error('Error loading providers for bot service:', error);
-      this.providers = [];
+      console.error('❌ Error loading providers for bot service:', error);
+      // Don't clear existing providers on error
+      if (this.providers.length === 0) {
+        this.providers = [];
+      }
+    } finally {
+      this.isLoading = false;
     }
   }
 
   // Force refresh providers
   async refreshProviders() {
+    console.log('🔄 Force refreshing providers...');
+    this.isLoading = false; // Reset loading flag
     await this.loadProviders();
+  }
+
+  // Get current providers count
+  getProvidersCount(): number {
+    return this.providers.length;
+  }
+
+  // Get providers by category
+  getProvidersByCategory(category: string): ServiceProvider[] {
+    return this.providers.filter(p => 
+      p.category.toLowerCase() === category.toLowerCase()
+    );
   }
 
   async processMessage(message: string): Promise<ChatMessage[]> {
     try {
-      // Refresh providers if it's been a while or if we have no providers
-      if (Date.now() - this.lastUpdate > this.updateInterval || this.providers.length === 0) {
+      // Always refresh providers for non-authenticated users to get latest data
+      if (Date.now() - this.lastUpdate > 5000) { // Refresh every 5 seconds
         await this.loadProviders();
       }
 
-      console.log(`Processing message: "${message}" with ${this.providers.length} providers available`);
+      console.log(`🤖 Processing message: "${message}" with ${this.providers.length} providers available`);
 
       // Get AI-powered response
       const aiResponse = await aiService.generateFriendlyResponse(message);
@@ -54,17 +88,38 @@ export class EnhancedBotService {
 
       // If it's a service request
       if (aiResponse.intent === 'service_request' && aiResponse.entities.service) {
-        console.log(`Service request detected: ${aiResponse.entities.service}`);
-        console.log(`Available providers:`, this.providers.map(p => ({ name: p.name, category: p.category })));
+        console.log(`🔍 Service request detected: ${aiResponse.entities.service}`);
+        console.log(`📊 Available providers:`, this.providers.map(p => ({ 
+          name: p.name, 
+          category: p.category, 
+          location: p.location,
+          services: p.services 
+        })));
 
         if (this.providers.length === 0) {
-          responses.push({
-            id: `bot_${Date.now() + 1}`,
-            text: `I understand you're looking for ${aiResponse.entities.service} services! 🔍 Unfortunately, we don't have any providers registered yet in our marketplace. \n\nBut here's the exciting part - you can be among the first to experience our platform! 🌟\n\n✨ **What you can do:**\n• Try our AI matching system (it's pretty smart!)\n• See how our quotation system works\n• Experience our user-friendly interface\n\nWe're actively recruiting service providers, so check back soon! In the meantime, feel free to explore and see how FundiConnect will revolutionize finding service providers in Kenya! 🚀`,
-            isBot: true,
-            timestamp: new Date(),
-            type: 'text'
-          });
+          // Force refresh one more time
+          await this.refreshProviders();
+          
+          if (this.providers.length === 0) {
+            responses.push({
+              id: `bot_${Date.now() + 1}`,
+              text: `I understand you're looking for ${aiResponse.entities.service} services! 🔍 
+
+Unfortunately, we don't have any providers registered yet in our marketplace. But here's the exciting part - you can be among the first to experience our platform! 🌟
+
+✨ **What you can do:**
+• Try our AI matching system (it's pretty smart!)
+• See how our quotation system works
+• Experience our user-friendly interface
+
+We're actively recruiting service providers, so check back soon! In the meantime, feel free to explore and see how FundiConnect will revolutionize finding service providers in Kenya! 🚀
+
+💡 **Want to join as a provider?** Click "Join FREE" to register instantly!`,
+              isBot: true,
+              timestamp: new Date(),
+              type: 'text'
+            });
+          }
         } else {
           // Match providers with the service request
           const matches = this.matchProviders(
@@ -74,7 +129,11 @@ export class EnhancedBotService {
             aiResponse.entities.urgent
           );
 
-          console.log(`Found ${matches.length} matching providers:`, matches);
+          console.log(`🎯 Found ${matches.length} matching providers:`, matches.map(p => ({
+            name: p.name,
+            category: p.category,
+            services: p.services
+          })));
 
           if (matches.length > 0) {
             const quotations = matches.map(provider => 
@@ -94,13 +153,42 @@ export class EnhancedBotService {
           } else {
             // No matches found - provide helpful alternatives
             const availableCategories = [...new Set(this.providers.map(p => p.category))];
-            const categoryText = availableCategories.length > 0 
-              ? `\n\nCurrently available services: ${availableCategories.join(', ')}`
-              : '';
+            const availableServices = [...new Set(this.providers.flatMap(p => p.services))];
+            
+            let suggestionText = `I couldn't find any ${aiResponse.entities.service} providers`;
+            if (aiResponse.entities.location) {
+              suggestionText += ` in ${aiResponse.entities.location}`;
+            }
+            suggestionText += ` right now. 😔\n\n`;
+
+            if (availableCategories.length > 0) {
+              suggestionText += `**Currently available services:**\n`;
+              availableCategories.forEach(cat => {
+                suggestionText += `• ${cat}\n`;
+              });
+              suggestionText += `\n`;
+            }
+
+            if (availableServices.length > 0) {
+              suggestionText += `**Specific services available:**\n`;
+              availableServices.slice(0, 8).forEach(service => {
+                suggestionText += `• ${service}\n`;
+              });
+              if (availableServices.length > 8) {
+                suggestionText += `• And ${availableServices.length - 8} more...\n`;
+              }
+              suggestionText += `\n`;
+            }
+
+            suggestionText += `**What you can do:**\n`;
+            suggestionText += `• Try searching for one of the available services above\n`;
+            suggestionText += `• Expand your search area\n`;
+            suggestionText += `• Check back later as new providers join daily\n\n`;
+            suggestionText += `Would you like me to show you providers for any of these services? 🔍`;
 
             responses.push({
               id: `bot_${Date.now() + 2}`,
-              text: `I couldn't find any ${aiResponse.entities.service} providers${aiResponse.entities.location ? ` in ${aiResponse.entities.location}` : ''} right now. 😔\n\nBut don't worry! Here's what you can do:\n• Try expanding your search area\n• Check back later as new providers join daily\n• Browse other available services${categoryText}\n\nWould you like me to show you what services are currently available? 🔍`,
+              text: suggestionText,
               isBot: true,
               timestamp: new Date(),
               type: 'text'
@@ -111,7 +199,7 @@ export class EnhancedBotService {
 
       return responses;
     } catch (error) {
-      console.error('Enhanced bot service error:', error);
+      console.error('❌ Enhanced bot service error:', error);
       return [{
         id: `bot_${Date.now()}`,
         text: "Oops! Something went wrong on my end. 😅 But I'm still here to help! Could you please try again? I'm ready to find you the perfect service provider! 💪",
@@ -124,30 +212,62 @@ export class EnhancedBotService {
 
   // Update providers list when new ones register
   updateProviders(providers: ServiceProvider[]) {
-    console.log('Updating bot service providers:', providers);
+    console.log('🔄 Updating bot service providers:', providers.length);
     this.providers = providers;
     this.lastUpdate = Date.now();
   }
 
   private matchProviders(service: string, location?: string, budget?: number, urgent?: boolean): ServiceProvider[] {
     try {
-      console.log(`Matching providers for service: ${service}, location: ${location}`);
+      console.log(`🔍 Matching providers for service: "${service}", location: "${location}"`);
+      console.log(`📊 Total providers to search: ${this.providers.length}`);
       
-      // First, try exact category match
-      let matches = this.providers.filter(provider => 
+      // Enhanced matching logic
+      let matches: ServiceProvider[] = [];
+
+      // 1. Exact category match
+      matches = this.providers.filter(provider => 
         provider.category.toLowerCase() === service.toLowerCase()
       );
+      console.log(`🎯 Exact category matches: ${matches.length}`);
 
-      // If no exact match, try partial matches
+      // 2. If no exact match, try partial category matches
       if (matches.length === 0) {
         matches = this.providers.filter(provider => 
           provider.category.toLowerCase().includes(service.toLowerCase()) ||
-          service.toLowerCase().includes(provider.category.toLowerCase()) ||
-          provider.services.some(s => s.toLowerCase().includes(service.toLowerCase()))
+          service.toLowerCase().includes(provider.category.toLowerCase())
         );
+        console.log(`🎯 Partial category matches: ${matches.length}`);
       }
 
-      console.log(`Found ${matches.length} category matches:`, matches.map(p => p.name));
+      // 3. If still no matches, try service-specific matches
+      if (matches.length === 0) {
+        matches = this.providers.filter(provider => 
+          provider.services.some(s => 
+            s.toLowerCase().includes(service.toLowerCase()) ||
+            service.toLowerCase().includes(s.toLowerCase())
+          )
+        );
+        console.log(`🎯 Service-specific matches: ${matches.length}`);
+      }
+
+      // 4. If still no matches, try broader keyword matching
+      if (matches.length === 0) {
+        const serviceKeywords = service.toLowerCase().split(' ');
+        matches = this.providers.filter(provider => {
+          const providerText = `${provider.category} ${provider.services.join(' ')} ${provider.description}`.toLowerCase();
+          return serviceKeywords.some(keyword => 
+            keyword.length > 2 && providerText.includes(keyword)
+          );
+        });
+        console.log(`🎯 Keyword matches: ${matches.length}`);
+      }
+
+      console.log(`📋 All matches found:`, matches.map(p => ({ 
+        name: p.name, 
+        category: p.category, 
+        services: p.services 
+      })));
 
       // Location filtering
       if (location && matches.length > 0) {
@@ -156,7 +276,9 @@ export class EnhancedBotService {
         );
         if (locationMatches.length > 0) {
           matches = locationMatches;
-          console.log(`After location filter: ${matches.length} matches`);
+          console.log(`📍 After location filter "${location}": ${matches.length} matches`);
+        } else {
+          console.log(`📍 No location matches for "${location}", keeping all matches`);
         }
       }
 
@@ -165,7 +287,7 @@ export class EnhancedBotService {
         const budgetMatches = matches.filter(provider => provider.hourlyRate <= budget * 1.2);
         if (budgetMatches.length > 0) {
           matches = budgetMatches;
-          console.log(`After budget filter: ${matches.length} matches`);
+          console.log(`💰 After budget filter (${budget}): ${matches.length} matches`);
         }
       }
 
@@ -175,9 +297,16 @@ export class EnhancedBotService {
         score: this.calculateProviderScore(provider, urgent, budget)
       })).sort((a, b) => b.score - a.score);
 
-      return matches.slice(0, 3);
+      const finalMatches = matches.slice(0, 3);
+      console.log(`✅ Final matches (top 3):`, finalMatches.map(p => ({ 
+        name: p.name, 
+        category: p.category, 
+        score: p.score 
+      })));
+
+      return finalMatches;
     } catch (error) {
-      console.error('Error matching providers:', error);
+      console.error('❌ Error matching providers:', error);
       return [];
     }
   }
@@ -225,7 +354,7 @@ export class EnhancedBotService {
         rating: provider.rating
       };
     } catch (error) {
-      console.error('Error generating quotation:', error);
+      console.error('❌ Error generating quotation:', error);
       return null;
     }
   }

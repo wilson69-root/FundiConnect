@@ -62,7 +62,7 @@ function App() {
       setLoading(true);
       setConnectionError(null);
       
-      console.log('Loading providers...');
+      console.log('🔄 Loading providers from database...');
       
       // Test Supabase connection first
       const { data: testData, error: testError } = await supabase
@@ -71,9 +71,8 @@ function App() {
         .limit(1);
       
       if (testError) {
-        console.error('Supabase connection error:', testError);
+        console.error('❌ Supabase connection error:', testError);
         setConnectionError('Database connection failed. Using demo mode.');
-        // Use mock data as fallback
         setProviders([]);
         return;
       }
@@ -82,16 +81,18 @@ function App() {
         category: selectedCategory || undefined,
       });
       
-      console.log('Loaded providers:', data);
+      console.log(`✅ Loaded ${data.length} providers:`, data);
       setProviders(data);
       
       // Update the enhanced bot service with new providers
       enhancedBotService.updateProviders(data);
       
+      // Force refresh the bot service to get latest data
+      await enhancedBotService.refreshProviders();
+      
     } catch (error) {
-      console.error('Error loading providers:', error);
+      console.error('❌ Error loading providers:', error);
       setConnectionError('Failed to load providers. Please check your connection.');
-      // Use empty array as fallback
       setProviders([]);
     } finally {
       setLoading(false);
@@ -104,6 +105,18 @@ function App() {
       loadProviders();
     }
   }, [selectedCategory, authLoading]);
+
+  // Auto-refresh providers every 30 seconds to catch new registrations
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loading && !authLoading) {
+        console.log('🔄 Auto-refreshing providers...');
+        loadProviders();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [loading, authLoading]);
 
   const filteredProviders = providers.filter(provider => {
     const matchesSearch = provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -188,43 +201,26 @@ function App() {
     try {
       setLoading(true);
       
-      // Ensure profile exists
-      let profileExists = true;
-      try {
-        await databaseService.getProfile(user.id);
-      } catch (err) {
-        profileExists = false;
-      }
-      if (!profileExists) {
-        try {
-          await databaseService.createProfile({
-            id: user.id,
-            email: user.email,
-            full_name: registrationData.personalInfo.fullName,
-            role: 'provider',
-            phone: registrationData.personalInfo.phone,
-            location: registrationData.personalInfo.location,
-            avatar_url: registrationData.personalInfo.profileImage || null,
-          });
-        } catch (err) {
-          alert('Error creating user profile. Please try again.');
-          return;
-        }
-      }
-
+      console.log('🚀 Starting provider registration...');
+      
       await databaseService.createServiceProvider(registrationData, user.id);
       setIsRegistrationModalOpen(false);
       setActiveTab('dashboard');
       
+      console.log('✅ Provider registration completed, refreshing data...');
+      
       // Reload providers to show the new one immediately
       await loadProviders();
       
-      // Force refresh the bot service providers
-      await enhancedBotService.refreshProviders();
+      // Force refresh the bot service providers with a small delay
+      setTimeout(async () => {
+        await enhancedBotService.refreshProviders();
+        console.log(`🤖 Bot service now has ${enhancedBotService.getProvidersCount()} providers`);
+      }, 2000);
       
-      alert('Registration successful! Welcome to FundiConnect! Your profile is now live and customers can find you immediately!');
+      alert('🎉 Registration successful! Welcome to FundiConnect! Your profile is now live and customers can find you immediately through our search and AI assistant!');
     } catch (error) {
-      console.error('Error registering provider:', error);
+      console.error('❌ Error registering provider:', error);
       alert('Error during registration. Please ensure your profile is complete and try again.');
     } finally {
       setLoading(false);

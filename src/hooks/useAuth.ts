@@ -36,11 +36,11 @@ export function useAuth() {
           return;
         }
 
-        // Increase timeout and add better error handling
+        // Reduce timeout and add better error handling
         const { data: { session }, error } = await Promise.race([
           supabase.auth.getSession(),
           new Promise<{ data: { session: null }, error: Error }>((_, reject) => 
-            setTimeout(() => reject(new Error('Auth timeout - please check your internet connection')), 15000)
+            setTimeout(() => reject(new Error('Auth timeout - please check your internet connection')), 8000)
           )
         ]);
 
@@ -73,6 +73,8 @@ export function useAuth() {
         if (!mounted) return;
 
         try {
+          console.log('Auth state change:', event, session?.user?.email);
+          
           if (session?.user) {
             await loadUserProfile(session.user);
           } else {
@@ -96,7 +98,10 @@ export function useAuth() {
 
   const loadUserProfile = async (authUser: User) => {
     try {
+      console.log('Loading profile for user:', authUser.email);
       const profile = await databaseService.getProfile(authUser.id);
+      console.log('Profile loaded:', profile);
+      
       setUser({
         ...authUser,
         profile: {
@@ -118,7 +123,9 @@ export function useAuth() {
   const signUp = async (email: string, password: string, fullName: string) => {
     setLoading(true);
     try {
+      console.log('Signing up user:', email);
       const data = await databaseService.signUp(email, password, fullName);
+      console.log('Sign up successful:', data);
       return data;
     } catch (error) {
       console.error('Sign up error:', error);
@@ -131,7 +138,9 @@ export function useAuth() {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log('Signing in user:', email);
       const data = await databaseService.signIn(email, password);
+      console.log('Sign in successful:', data);
       return data;
     } catch (error) {
       console.error('Sign in error:', error);

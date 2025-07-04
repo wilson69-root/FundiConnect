@@ -16,24 +16,26 @@ export class DatabaseService {
         data: {
           full_name: fullName,
         },
-        emailRedirectTo: "https://fundiconnect.netlify.app/"
+        // Remove email confirmation requirement
+        emailRedirectTo: undefined
       },
     });
 
     if (error) throw error;
 
-    // Wait for the user to be fully authenticated
+    // Create profile immediately without waiting for email confirmation
     if (data.user) {
-      // Get the current session to ensure we're authenticated
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        // Now create the profile
+      try {
         await this.createProfile({
-          id: session.user.id,
+          id: data.user.id,
           email,
           full_name: fullName,
           role: 'customer',
         });
+        console.log('✅ Profile created successfully for:', email);
+      } catch (profileError) {
+        console.error('❌ Error creating profile:', profileError);
+        // Don't throw here - user can still sign in
       }
     }
 
@@ -62,14 +64,40 @@ export class DatabaseService {
 
   // Profile methods
   async createProfile(profile: Tables['profiles']['Insert']) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .insert(profile)
-      .select()
-      .single();
+    try {
+      // First check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', profile.id)
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (existingProfile) {
+        console.log('Profile already exists, updating instead');
+        return await this.updateProfile(profile.id, {
+          full_name: profile.full_name,
+          email: profile.email,
+          role: profile.role
+        });
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert(profile)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Profile creation error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Profile created successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Error in createProfile:', error);
+      throw error;
+    }
   }
 
   async getProfile(userId: string) {
@@ -106,68 +134,107 @@ export class DatabaseService {
     return data;
   }
 
-  // Service providers - Enhanced query with better joins
+  // Service providers - Enhanced query with better error handling for deployment
   async getServiceProviders(filters?: {
     category?: string;
     location?: string;
     status?: string;
   }) {
-    let query = supabase
-      .from('service_providers')
-      .select(`
-        *,
-        profiles!service_providers_user_id_fkey(
-          full_name, 
-          phone, 
-          avatar_url, 
-          location,
-          email
-        ),
-        service_categories!service_providers_category_id_fkey(name),
-        provider_services(service_name, description)
-      `)
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false });
-
-    // Apply filters
-    if (filters?.category) {
-      // Join with service_categories to filter by category name
-      const { data: categoryData } = await supabase
-        .from('service_categories')
-        .select('id')
-        .eq('name', filters.category)
-        .single();
+    try {
+      console.log('🔍 Fetching service providers with filters:', filters);
       
-      if (categoryData) {
-        query = query.eq('category_id', categoryData.id);
+      // Test connection first
+      const { data: testData, error: testError } = await supabase
+        .from('service_providers')
+        .select('count')
+        .limit(1);
+      
+      if (testError) {
+        console.error('❌ Database connection test failed:', testError);
+        throw new Error('Database connection failed');
       }
-    }
 
-    if (filters?.location) {
-      // This will be applied in the transformation since we need to check profiles.location
-    }
+      // Build the query with proper error handling
+      let query = supabase
+        .from('service_providers')
+        .select(`
+          *,
+          profiles!service_providers_user_id_fkey(
+            full_name, 
+            phone, 
+            avatar_url, 
+            location,
+            email
+          ),
+          service_categories!service_providers_category_id_fkey(name),
+          provider_services(service_name, description)
+        `)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
 
-    const { data, error } = await query;
+      // Apply category filter if provided
+      if (filters?.category) {
+        try {
+          const { data: categoryData, error: categoryError } = await supabase
+            .from('service_categories')
+            .select('id')
+            .eq('name', filters.category)
+            .single();
+          
+          if (categoryError) {
+            console.warn('Category not found:', filters.category);
+          } else if (categoryData) {
+            query = query.eq('category_id', categoryData.id);
+            console.log('✅ Applied category filter:', filters.category);
+          }
+        } catch (categoryError) {
+          console.warn('Error applying category filter:', categoryError);
+        }
+      }
 
-    if (error) {
-      console.error('Database query error:', error);
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('❌ Database query error:', error);
+        throw error;
+      }
+
+      console.log(`📊 Raw provider data from database (${data?.length || 0} records):`, data);
+
+      if (!data || data.length === 0) {
+        console.log('⚠️ No providers found in database');
+        return [];
+      }
+
+      // Transform to ServiceProvider format with better error handling
+      const providers = data
+        .map((item, index) => {
+          try {
+            return this.transformToServiceProvider(item);
+          } catch (transformError) {
+            console.error(`❌ Error transforming provider ${index}:`, transformError, item);
+            return null;
+          }
+        })
+        .filter(Boolean) as ServiceProvider[];
+
+      // Apply location filter after transformation
+      let filteredProviders = providers;
+      if (filters?.location) {
+        filteredProviders = providers.filter(provider =>
+          provider.location.toLowerCase().includes(filters.location!.toLowerCase())
+        );
+        console.log(`📍 Applied location filter "${filters.location}": ${filteredProviders.length} matches`);
+      }
+
+      console.log(`✅ Successfully transformed ${filteredProviders.length} providers:`, 
+        filteredProviders.map(p => ({ name: p.name, category: p.category, location: p.location })));
+      
+      return filteredProviders;
+    } catch (error) {
+      console.error('❌ Error in getServiceProviders:', error);
       throw error;
     }
-
-    console.log('Raw provider data from database:', data);
-
-    // Transform to ServiceProvider format
-    let providers = data?.map(this.transformToServiceProvider).filter(Boolean) || [];
-
-    // Apply location filter after transformation
-    if (filters?.location) {
-      providers = providers.filter(provider =>
-        provider.location.toLowerCase().includes(filters.location!.toLowerCase())
-      );
-    }
-
-    console.log('Transformed providers:', providers);
-    return providers;
   }
 
   async getServiceProvider(id: string) {
@@ -188,42 +255,59 @@ export class DatabaseService {
   }
 
   async createServiceProvider(registrationData: ProviderRegistrationData, userId: string) {
-    console.log('Creating service provider with data:', registrationData);
+    try {
+      console.log('🚀 Creating service provider with data:', registrationData);
 
-    // Get or create category
-    let categoryResult = await supabase
-      .from('service_categories')
-      .select('id')
-      .eq('name', registrationData.businessInfo.category)
-      .single();
-
-    if (!categoryResult.data) {
-      // Create category if it doesn't exist
-      const { data: newCategory, error: categoryError } = await supabase
-        .from('service_categories')
-        .insert({
-          name: registrationData.businessInfo.category,
-          description: `${registrationData.businessInfo.category} services`,
-          icon: 'Wrench',
-          gradient: 'from-blue-500 to-blue-600'
-        })
-        .select()
-        .single();
-      
-      if (categoryError) {
-        console.error('Error creating category:', categoryError);
-        throw categoryError;
+      // Ensure we have a valid user profile first
+      let profile;
+      try {
+        profile = await this.getProfile(userId);
+        console.log('✅ Found existing profile:', profile);
+      } catch (profileError) {
+        console.log('⚠️ Profile not found, creating one...');
+        profile = await this.createProfile({
+          id: userId,
+          email: registrationData.personalInfo.email,
+          full_name: registrationData.personalInfo.fullName,
+          role: 'provider',
+          phone: registrationData.personalInfo.phone,
+          location: registrationData.personalInfo.location,
+        });
       }
-      
-      categoryResult.data = newCategory;
-    }
 
-    if (!categoryResult.data) throw new Error('Failed to create or find service category');
+      // Get or create category
+      let categoryResult = await supabase
+        .from('service_categories')
+        .select('id')
+        .eq('name', registrationData.businessInfo.category)
+        .single();
 
-    // Create service provider with INSTANT APPROVAL
-    const { data: provider, error: providerError } = await supabase
-      .from('service_providers')
-      .insert({
+      if (!categoryResult.data) {
+        console.log('📝 Creating new service category:', registrationData.businessInfo.category);
+        const { data: newCategory, error: categoryError } = await supabase
+          .from('service_categories')
+          .insert({
+            name: registrationData.businessInfo.category,
+            description: `${registrationData.businessInfo.category} services`,
+            icon: 'Wrench',
+            gradient: 'from-blue-500 to-blue-600'
+          })
+          .select()
+          .single();
+        
+        if (categoryError) {
+          console.error('❌ Error creating category:', categoryError);
+          throw categoryError;
+        }
+        
+        categoryResult.data = newCategory;
+        console.log('✅ Created new category:', newCategory);
+      }
+
+      if (!categoryResult.data) throw new Error('Failed to create or find service category');
+
+      // Create service provider with INSTANT APPROVAL
+      const providerData = {
         user_id: userId,
         business_name: registrationData.personalInfo.fullName,
         category_id: categoryResult.data.id,
@@ -233,68 +317,86 @@ export class DatabaseService {
         response_time: registrationData.businessInfo.responseTime,
         certifications: registrationData.credentials.certifications,
         portfolio_images: registrationData.credentials.portfolio,
-        status: 'approved', // INSTANT APPROVAL - No 24hr wait!
-        availability: 'online', // Set as online by default
+        status: 'approved' as const, // INSTANT APPROVAL
+        availability: 'online' as const, // Set as online by default
         rating: 4.5, // Start with good rating
         total_reviews: 1, // Start with 1 review to show activity
         total_jobs: 0
-      })
-      .select()
-      .single();
+      };
 
-    if (providerError) {
-      console.error('Error creating provider:', providerError);
-      throw providerError;
-    }
+      console.log('📝 Inserting provider data:', providerData);
 
-    console.log('Created provider:', provider);
+      const { data: provider, error: providerError } = await supabase
+        .from('service_providers')
+        .insert(providerData)
+        .select()
+        .single();
 
-    // Add services
-    if (registrationData.businessInfo.services.length > 0) {
-      const services = registrationData.businessInfo.services.map(service => ({
-        provider_id: provider.id,
-        service_name: service,
-        description: `Professional ${service.toLowerCase()} services`,
-        price_range: `KSh ${registrationData.businessInfo.hourlyRate} - ${registrationData.businessInfo.hourlyRate * 2}`
-      }));
-
-      const { error: servicesError } = await supabase
-        .from('provider_services')
-        .insert(services);
-
-      if (servicesError) {
-        console.error('Error adding services:', servicesError);
+      if (providerError) {
+        console.error('❌ Error creating provider:', providerError);
+        throw providerError;
       }
-    }
 
-    // Add availability
-    if (registrationData.availability.workingDays.length > 0) {
-      const availability = registrationData.availability.workingDays.map(day => ({
-        provider_id: provider.id,
-        day_of_week: this.getDayOfWeek(day),
-        start_time: registrationData.availability.workingHours.start,
-        end_time: registrationData.availability.workingHours.end,
-        is_available: true
-      }));
+      console.log('✅ Created provider:', provider);
 
-      const { error: availabilityError } = await supabase
-        .from('provider_availability')
-        .insert(availability);
+      // Add services
+      if (registrationData.businessInfo.services.length > 0) {
+        const services = registrationData.businessInfo.services.map(service => ({
+          provider_id: provider.id,
+          service_name: service,
+          description: `Professional ${service.toLowerCase()} services`,
+          price_range: `KSh ${registrationData.businessInfo.hourlyRate} - ${registrationData.businessInfo.hourlyRate * 2}`
+        }));
 
-      if (availabilityError) {
-        console.error('Error adding availability:', availabilityError);
+        console.log('📝 Adding services:', services);
+
+        const { error: servicesError } = await supabase
+          .from('provider_services')
+          .insert(services);
+
+        if (servicesError) {
+          console.error('❌ Error adding services:', servicesError);
+        } else {
+          console.log('✅ Services added successfully');
+        }
       }
+
+      // Add availability
+      if (registrationData.availability.workingDays.length > 0) {
+        const availability = registrationData.availability.workingDays.map(day => ({
+          provider_id: provider.id,
+          day_of_week: this.getDayOfWeek(day),
+          start_time: registrationData.availability.workingHours.start,
+          end_time: registrationData.availability.workingHours.end,
+          is_available: true
+        }));
+
+        console.log('📝 Adding availability:', availability);
+
+        const { error: availabilityError } = await supabase
+          .from('provider_availability')
+          .insert(availability);
+
+        if (availabilityError) {
+          console.error('❌ Error adding availability:', availabilityError);
+        } else {
+          console.log('✅ Availability added successfully');
+        }
+      }
+
+      // Update profile role and location
+      await this.updateProfile(userId, { 
+        role: 'provider',
+        location: registrationData.personalInfo.location,
+        phone: registrationData.personalInfo.phone
+      });
+
+      console.log('🎉 Provider registration completed successfully!');
+      return provider;
+    } catch (error) {
+      console.error('❌ Error in createServiceProvider:', error);
+      throw error;
     }
-
-    // Update profile role and location
-    await this.updateProfile(userId, { 
-      role: 'provider',
-      location: registrationData.personalInfo.location,
-      phone: registrationData.personalInfo.phone
-    });
-
-    console.log('Provider registration completed successfully');
-    return provider;
   }
 
   // Bookings
@@ -428,40 +530,50 @@ export class DatabaseService {
   // Helper methods
   private transformToServiceProvider(data: any): ServiceProvider | null {
     try {
-      console.log('Transforming provider data:', data);
-
-      if (!data || !data.profiles) {
-        console.warn('Invalid provider data - missing profiles:', data);
+      if (!data) {
+        console.warn('⚠️ No data provided to transform');
         return null;
       }
 
+      // Handle missing profiles data gracefully
+      const profileData = data.profiles || {};
+      const categoryData = data.service_categories || {};
+      const servicesData = data.provider_services || [];
+
       const provider: ServiceProvider = {
         id: data.id,
-        name: data.profiles.full_name || 'Unknown Provider',
-        category: data.service_categories?.name || 'Unknown',
+        name: profileData.full_name || data.business_name || 'Unknown Provider',
+        category: categoryData.name || 'Unknown',
         rating: data.rating || 4.5,
         reviews: data.total_reviews || 1,
         hourlyRate: data.hourly_rate || 0,
-        location: data.profiles.location || 'Kenya',
-        image: data.profiles.avatar_url || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400',
+        location: profileData.location || 'Kenya',
+        image: profileData.avatar_url || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400',
         verified: data.status === 'approved',
         responseTime: data.response_time || '< 1 hour',
         description: data.description || 'Professional service provider',
-        services: data.provider_services?.map((s: any) => s.service_name) || [],
+        services: servicesData.map((s: any) => s.service_name).filter(Boolean),
         availability: data.availability || 'online',
         joinDate: new Date(data.created_at),
         completedJobs: data.total_jobs || 0,
-        phone: data.profiles.phone,
-        email: data.profiles.email,
+        phone: profileData.phone,
+        email: profileData.email,
         experience: data.experience_years || 1,
         certifications: data.certifications || [],
         portfolio: data.portfolio_images || [],
       };
 
-      console.log('Transformed provider:', provider);
+      console.log('✅ Successfully transformed provider:', {
+        id: provider.id,
+        name: provider.name,
+        category: provider.category,
+        location: provider.location
+      });
+
       return provider;
     } catch (error) {
-      console.error('Error transforming provider data:', error, data);
+      console.error('❌ Error transforming provider data:', error);
+      console.error('Raw data that failed to transform:', data);
       return null;
     }
   }
