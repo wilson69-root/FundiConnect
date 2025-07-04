@@ -50,12 +50,10 @@ function App() {
     }
   }, []);
 
-  // Load providers from database with better error handling
+  // Load providers from database - ALWAYS load regardless of auth status
   useEffect(() => {
-    if (!authLoading) {
-      loadProviders();
-    }
-  }, [authLoading]);
+    loadProviders();
+  }, [selectedCategory]); // Remove authLoading dependency
 
   const loadProviders = async () => {
     try {
@@ -99,24 +97,17 @@ function App() {
     }
   };
 
-  // Reload providers when category changes
-  useEffect(() => {
-    if (!authLoading) {
-      loadProviders();
-    }
-  }, [selectedCategory, authLoading]);
-
   // Auto-refresh providers every 30 seconds to catch new registrations
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!loading && !authLoading) {
+      if (!loading) {
         console.log('🔄 Auto-refreshing providers...');
         loadProviders();
       }
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [loading, authLoading]);
+  }, [loading, selectedCategory]);
 
   const filteredProviders = providers.filter(provider => {
     const matchesSearch = provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
