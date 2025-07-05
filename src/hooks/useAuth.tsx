@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { databaseService } from '../services/databaseService';
 
 export interface AuthUser extends User {
@@ -21,20 +21,16 @@ export function useAuth() {
 
     const initializeAuth = async () => {
       try {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-        if (
-          !supabaseUrl ||
-          !supabaseKey ||
-          supabaseUrl === 'https://placeholder.supabase.co' ||
-          supabaseKey === 'placeholder-key'
-        ) {
+        // Check if Supabase is configured first
+        if (!isSupabaseConfigured) {
           console.warn('Supabase not configured. Running in offline mode.');
-          if (mounted) setLoading(false);
+          if (mounted) {
+            setLoading(false);
+          }
           return;
         }
 
+        // Try to get session with shorter timeout and better error handling
         let session;
         let error;
 
@@ -42,21 +38,34 @@ export function useAuth() {
           const result = await Promise.race([
             supabase.auth.getSession(),
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Auth timeout - please check your internet connection')), 8000)
+              setTimeout(() => reject(new Error('Connection timeout - Supabase may be unreachable')), 5000)
             )
           ]);
 
-          session = result.data.session;
-          error = result.error;
+          if (result && typeof result === 'object' && 'data' in result) {
+            session = result.data.session;
+            error = result.error;
+          } else {
+            throw new Error('Invalid response from Supabase');
+          }
         } catch (e) {
-          console.error('Auth timeout or fetch error:', e);
-          if (mounted) setLoading(false);
+          console.warn('Supabase connection failed:', e instanceof Error ? e.message : 'Unknown error');
+          console.warn('Running in offline mode. Please check:');
+          console.warn('1. Your internet connection');
+          console.warn('2. Supabase configuration in .env file');
+          console.warn('3. Supabase project status');
+          
+          if (mounted) {
+            setLoading(false);
+          }
           return;
         }
 
         if (error) {
           console.error('Auth initialization error:', error);
-          if (mounted) setLoading(false);
+          if (mounted) {
+            setLoading(false);
+          }
           return;
         }
 
@@ -67,38 +76,69 @@ export function useAuth() {
         }
       } catch (error) {
         console.error('Auth initialization failed:', error);
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
-
+    // Only set up auth listener if Supabase is configured
+    let subscription: { unsubscribe: () => void } | null = null;
+    
+    if (isSupabaseConfigured) {
       try {
-        console.log('Auth state change:', event, session?.user?.email);
-        if (session?.user) {
-          await loadUserProfile(session.user);
-        } else {
-          setUser(null);
-          setLoading(false);
-        }
+        const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (!mounted) return;
+
+          try {
+            console.log('Auth state change:', event, session?.user?.email);
+            if (session?.user) {
+              await loadUserProfile(session.user);
+            } else {
+              setUser(null);
+              setLoading(false);
+            }
+          } catch (error) {
+            console.error('Auth state change error:', error);
+            if (mounted) {
+              setLoading(false);
+            }
+          }
+        });
+        
+        subscription = data.subscription;
       } catch (error) {
-        console.error('Auth state change error:', error);
-        if (mounted) setLoading(false);
+        console.error('Failed to set up auth listener:', error);
       }
-    });
+    }
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
   const loadUserProfile = async (authUser: User) => {
     try {
       console.log('Loading profile for user:', authUser.email);
+      
+      // Check if database service is available
+      if (!isSupabaseConfigured) {
+        console.warn('Database not available, using basic profile');
+        setUser({
+          ...authUser,
+          profile: {
+            full_name: authUser.user_metadata?.full_name || authUser.email || '',
+            role: 'customer'
+          }
+        });
+        return;
+      }
+
       const profile = await databaseService.getProfile(authUser.id);
 
       if (!profile) {
@@ -157,6 +197,10 @@ export function useAuth() {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Authentication is not available. Please check your Supabase configuration.');
+    }
+
     setLoading(true);
     try {
       console.log('Signing up user:', email);
@@ -172,6 +216,10 @@ export function useAuth() {
   };
 
   const signIn = async (email: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Authentication is not available. Please check your Supabase configuration.');
+    }
+
     setLoading(true);
     try {
       console.log('Signing in user:', email);
@@ -187,6 +235,11 @@ export function useAuth() {
   };
 
   const signOut = async () => {
+    if (!isSupabaseConfigured) {
+      console.warn('Sign out not available - Supabase not configured');
+      return;
+    }
+
     setLoading(true);
     try {
       await databaseService.signOut();
@@ -202,6 +255,7 @@ export function useAuth() {
     loading,
     signUp,
     signIn,
-    signOut
+    signOut,
+    isConfigured: isSupabaseConfigured
   }), [user, loading]);
 }
