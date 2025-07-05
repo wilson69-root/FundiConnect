@@ -50,12 +50,17 @@ export class DatabaseService {
   // Profile methods
   async createProfile(profile: Tables['profiles']['Insert']) {
     try {
-      // First check if profile already exists
-      const { data: existingProfile } = await supabase
+      // First check if profile already exists using maybeSingle()
+      const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', profile.id)
-        .single();
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking for existing profile:', checkError);
+        throw checkError;
+      }
 
       if (existingProfile) {
         console.log('Profile already exists, updating instead');
@@ -90,15 +95,13 @@ export class DatabaseService {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      // If profile doesn't exist, return null instead of throwing
-      if (error.code === 'PGRST116') {
-        return null;
-      }
+      console.error('Error fetching profile:', error);
       throw error;
     }
+    
     return data;
   }
 
@@ -170,7 +173,7 @@ export class DatabaseService {
             .from('service_categories')
             .select('id')
             .eq('name', filters.category)
-            .single();
+            .maybeSingle();
           
           if (categoryError) {
             console.warn('Category not found:', filters.category);
@@ -272,7 +275,7 @@ export class DatabaseService {
         .from('service_categories')
         .select('id')
         .eq('name', registrationData.businessInfo.category)
-        .single();
+        .maybeSingle();
 
       if (!categoryResult.data) {
         console.log('📝 Creating new service category:', registrationData.businessInfo.category);
@@ -436,7 +439,7 @@ export class DatabaseService {
         .from('service_providers')
         .select('id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (provider) {
         query = query.eq('provider_id', provider.id);
