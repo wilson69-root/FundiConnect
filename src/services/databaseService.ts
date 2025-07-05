@@ -9,32 +9,57 @@ type PaymentRow = Tables['payments']['Row'];
 export class DatabaseService {
   // Auth methods
   async signUp(email: string, password: string, fullName: string) {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+          // Remove email confirmation requirement
+          emailRedirectTo: undefined
         },
-        // Remove email confirmation requirement
-        emailRedirectTo: undefined
-      },
-    });
+      });
 
-    if (error) throw error;
+      if (error) {
+        // Handle specific Supabase auth errors
+        if (error.message?.includes('User already registered') || error.message?.includes('user_already_exists')) {
+          throw new Error('This email is already registered. Please sign in instead.');
+        }
+        throw error;
+      }
 
-
-    return data;
+      return data;
+    } catch (error) {
+      console.error('Sign up error:', error);
+      throw error;
+    }
   }
 
   async signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        // Handle specific Supabase auth errors
+        if (error.message?.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password. Please check your credentials.');
+        }
+        if (error.message?.includes('Email not confirmed')) {
+          throw new Error('Please check your email and click the confirmation link.');
+        }
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
+    }
   }
 
   async signOut() {
