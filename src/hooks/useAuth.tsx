@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
@@ -74,7 +73,7 @@ export function useAuth() {
 
     initializeAuth();
 
-    const { subscription } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
       try {
