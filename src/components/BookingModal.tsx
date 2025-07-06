@@ -70,6 +70,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({ provider, isOpen, on
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              type="button"
+              aria-label="Close booking modal"
             >
               <X size={20} />
             </button>
@@ -105,15 +107,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({ provider, isOpen, on
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
               {/* Date and Time */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="booking-date" className="block text-sm font-medium text-gray-700 mb-2">
                     Date
                   </label>
                   <input
                     type="date"
+                    id="booking-date"
                     name="date"
                     value={formData.date}
                     onChange={handleInputChange}
@@ -123,11 +126,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({ provider, isOpen, on
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="booking-time" className="block text-sm font-medium text-gray-700 mb-2">
                     Time
                   </label>
                   <input
                     type="time"
+                    id="booking-time"
                     name="time"
                     value={formData.time}
                     onChange={handleInputChange}
@@ -140,10 +144,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({ provider, isOpen, on
               {/* Service and Duration */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="booking-service" className="block text-sm font-medium text-gray-700 mb-2">
                     Service Type
                   </label>
                   <select
+                    id="booking-service"
                     name="service"
                     value={formData.service}
                     onChange={handleInputChange}
@@ -156,10 +161,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({ provider, isOpen, on
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="booking-duration" className="block text-sm font-medium text-gray-700 mb-2">
                     Duration (hours)
                   </label>
                   <select
+                    id="booking-duration"
                     name="duration"
                     value={formData.duration}
                     onChange={handleInputChange}
@@ -175,41 +181,46 @@ export const BookingModal: React.FC<BookingModalProps> = ({ provider, isOpen, on
               {/* Contact Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-2">
                     Phone Number
                   </label>
                   <input
                     type="tel"
+                    id="contact-phone"
                     name="contactPhone"
                     value={formData.contactPhone}
                     onChange={handleInputChange}
                     placeholder="+254 700 000 000"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
+                    autoComplete="tel"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-2">
                     Email Address
                   </label>
                   <input
                     type="email"
+                    id="contact-email"
                     name="contactEmail"
                     value={formData.contactEmail}
                     onChange={handleInputChange}
                     placeholder="your@email.com"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
+                    autoComplete="email"
                   />
                 </div>
               </div>
 
               {/* Additional Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="booking-notes" className="block text-sm font-medium text-gray-700 mb-2">
                   Additional Notes (Optional)
                 </label>
                 <textarea
+                  id="booking-notes"
                   name="notes"
                   value={formData.notes}
                   onChange={handleInputChange}

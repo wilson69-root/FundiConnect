@@ -116,6 +116,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            type="button"
+            aria-label="Close modal"
           >
             <X size={20} />
           </button>
@@ -131,16 +133,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {mode === 'signup' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
                 Full Name
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
+                  id="fullName"
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleInputChange}
@@ -148,19 +151,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   placeholder="Enter your full name"
                   required
                   disabled={loading}
+                  autoComplete="name"
                 />
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               Email Address
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="email"
+                id="email"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
@@ -168,18 +173,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 placeholder="Enter your email"
                 required
                 disabled={loading}
+                autoComplete="email"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
               Password
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type={showPassword ? 'text' : 'password'}
+                id="password"
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
@@ -187,12 +194,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 placeholder="Enter your password"
                 required
                 disabled={loading}
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                minLength={6}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 disabled={loading}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -201,13 +211,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {mode === 'signup' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
                 Confirm Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  id="confirmPassword"
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
@@ -215,6 +226,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   placeholder="Confirm your password"
                   required
                   disabled={loading}
+                  autoComplete="new-password"
+                  minLength={6}
                 />
               </div>
             </div>
@@ -252,6 +265,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               onClick={handleModeSwitch}
               className="ml-2 text-blue-600 hover:text-blue-700 font-semibold"
               disabled={loading}
+              type="button"
             >
               {mode === 'signin' ? 'Sign Up' : 'Sign In'}
             </button>

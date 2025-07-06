@@ -234,17 +234,20 @@ export const MpesaPayment: React.FC<MpesaPaymentProps> = ({
       {/* Phone Number Input */}
       {paymentStatus === 'idle' && (
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="mpesa-phone" className="block text-sm font-medium text-gray-700 mb-2">
             <Phone className="w-4 h-4 inline mr-2" />
             M-Pesa Phone Number
           </label>
           <input
             type="tel"
+            id="mpesa-phone"
+            name="mpesa-phone"
             value={phoneNumber}
             onChange={handlePhoneChange}
             placeholder="0712 345 678"
             className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all text-lg"
             maxLength={12}
+            autoComplete="tel"
           />
           <p className="text-sm text-gray-500 mt-2">
             Enter your M-Pesa registered phone number
@@ -270,6 +273,7 @@ export const MpesaPayment: React.FC<MpesaPaymentProps> = ({
             onClick={handlePayment}
             disabled={!validatePhoneNumber(phoneNumber) || isProcessing}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-4 rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 disabled:transform-none"
+            type="button"
           >
             {isProcessing ? (
               <div className="flex items-center justify-center space-x-2">
@@ -286,6 +290,7 @@ export const MpesaPayment: React.FC<MpesaPaymentProps> = ({
           <button
             onClick={() => onSuccess(checkoutRequestID)}
             className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-xl font-semibold text-lg transition-all duration-300"
+            type="button"
           >
             Continue
           </button>
@@ -295,6 +300,7 @@ export const MpesaPayment: React.FC<MpesaPaymentProps> = ({
           <button
             onClick={onCancel}
             className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-4 rounded-xl font-semibold text-lg transition-all duration-300"
+            type="button"
           >
             Cancel
           </button>

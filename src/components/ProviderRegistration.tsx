@@ -155,54 +155,66 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="provider-full-name" className="block text-sm font-medium text-gray-700 mb-2">
                   Full Name *
                 </label>
                 <input
                   type="text"
+                  id="provider-full-name"
+                  name="fullName"
                   value={formData.personalInfo.fullName}
                   onChange={(e) => handleInputChange('personalInfo', 'fullName', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter your full name"
+                  autoComplete="name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="provider-email" className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address *
                 </label>
                 <input
                   type="email"
+                  id="provider-email"
+                  name="email"
                   value={formData.personalInfo.email}
                   onChange={(e) => handleInputChange('personalInfo', 'email', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="your@email.com"
+                  autoComplete="email"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="provider-phone" className="block text-sm font-medium text-gray-700 mb-2">
                   Phone Number *
                 </label>
                 <input
                   type="tel"
+                  id="provider-phone"
+                  name="phone"
                   value={formData.personalInfo.phone}
                   onChange={(e) => handleInputChange('personalInfo', 'phone', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="+254 700 000 000"
+                  autoComplete="tel"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="provider-location" className="block text-sm font-medium text-gray-700 mb-2">
                   Location *
                 </label>
                 <input
                   type="text"
+                  id="provider-location"
+                  name="location"
                   value={formData.personalInfo.location}
                   onChange={(e) => handleInputChange('personalInfo', 'location', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Nairobi, Westlands"
+                  autoComplete="address-level2"
                 />
               </div>
             </div>
@@ -230,10 +242,12 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="provider-category" className="block text-sm font-medium text-gray-700 mb-2">
                   Service Category *
                 </label>
                 <select
+                  id="provider-category"
+                  name="category"
                   value={formData.businessInfo.category}
                   onChange={(e) => handleInputChange('businessInfo', 'category', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -246,11 +260,13 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="provider-hourly-rate" className="block text-sm font-medium text-gray-700 mb-2">
                   Hourly Rate (KSh) *
                 </label>
                 <input
                   type="number"
+                  id="provider-hourly-rate"
+                  name="hourlyRate"
                   value={formData.businessInfo.hourlyRate}
                   onChange={(e) => handleInputChange('businessInfo', 'hourlyRate', parseInt(e.target.value))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -260,11 +276,13 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="provider-experience" className="block text-sm font-medium text-gray-700 mb-2">
                   Years of Experience *
                 </label>
                 <input
                   type="number"
+                  id="provider-experience"
+                  name="experience"
                   value={formData.businessInfo.experience}
                   onChange={(e) => handleInputChange('businessInfo', 'experience', parseInt(e.target.value))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -274,10 +292,12 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="provider-response-time" className="block text-sm font-medium text-gray-700 mb-2">
                   Response Time *
                 </label>
                 <select
+                  id="provider-response-time"
+                  name="responseTime"
                   value={formData.businessInfo.responseTime}
                   onChange={(e) => handleInputChange('businessInfo', 'responseTime', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -290,18 +310,21 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="new-service-input" className="block text-sm font-medium text-gray-700 mb-2">
                 Services Offered *
               </label>
               <div className="flex space-x-2 mb-3">
                 <input
                   type="text"
+                  id="new-service-input"
+                  name="newService"
                   value={newService}
                   onChange={(e) => setNewService(e.target.value)}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Add a service"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
+                      e.preventDefault();
                       handleArrayAdd('businessInfo', 'services', newService);
                       setNewService('');
                     }
@@ -329,6 +352,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
                       type="button"
                       onClick={() => handleArrayRemove('businessInfo', 'services', index)}
                       className="text-blue-600 hover:text-blue-800"
+                      aria-label={`Remove ${service}`}
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -338,10 +362,12 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="provider-description" className="block text-sm font-medium text-gray-700 mb-2">
                 Business Description *
               </label>
               <textarea
+                id="provider-description"
+                name="description"
                 value={formData.businessInfo.description}
                 onChange={(e) => handleInputChange('businessInfo', 'description', e.target.value)}
                 rows={4}
@@ -375,6 +401,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
                         : 'border-gray-300 hover:border-gray-400'
                     }`}
+                    aria-pressed={formData.availability.workingDays.includes(day)}
                   >
                     {day}
                   </button>
@@ -384,11 +411,13 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="start-time" className="block text-sm font-medium text-gray-700 mb-2">
                   Start Time
                 </label>
                 <input
                   type="time"
+                  id="start-time"
+                  name="startTime"
                   value={formData.availability.workingHours.start}
                   onChange={(e) => handleInputChange('availability', 'workingHours', {
                     ...formData.availability.workingHours,
@@ -399,11 +428,13 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="end-time" className="block text-sm font-medium text-gray-700 mb-2">
                   End Time
                 </label>
                 <input
                   type="time"
+                  id="end-time"
+                  name="endTime"
                   value={formData.availability.workingHours.end}
                   onChange={(e) => handleInputChange('availability', 'workingHours', {
                     ...formData.availability.workingHours,
@@ -415,18 +446,21 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="new-service-area" className="block text-sm font-medium text-gray-700 mb-2">
                 Service Areas *
               </label>
               <div className="flex space-x-2 mb-3">
                 <input
                   type="text"
+                  id="new-service-area"
+                  name="newServiceArea"
                   value={newServiceArea}
                   onChange={(e) => setNewServiceArea(e.target.value)}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Add a service area (e.g., Westlands, CBD)"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
+                      e.preventDefault();
                       handleArrayAdd('availability', 'serviceAreas', newServiceArea);
                       setNewServiceArea('');
                     }
@@ -454,6 +488,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
                       type="button"
                       onClick={() => handleArrayRemove('availability', 'serviceAreas', index)}
                       className="text-purple-600 hover:text-purple-800"
+                      aria-label={`Remove ${area}`}
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -490,6 +525,8 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            type="button"
+            aria-label="Close registration modal"
           >
             <X size={20} />
           </button>
@@ -541,6 +578,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
             onClick={handlePrevious}
             disabled={currentStep === 1}
             className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
           >
             Previous
           </button>
@@ -558,6 +596,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
                 onClick={handleNext}
                 disabled={!validateStep(currentStep)}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                type="button"
               >
                 Next
               </button>
@@ -566,6 +605,7 @@ export const ProviderRegistration: React.FC<ProviderRegistrationProps> = ({ onSu
                 onClick={handleSubmit}
                 disabled={!validateStep(currentStep)}
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                type="button"
               >
                 Go Live Instantly - FREE!
               </button>
