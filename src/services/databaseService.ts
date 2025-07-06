@@ -10,6 +10,18 @@ export class DatabaseService {
   // Auth methods
   async signUp(email: string, password: string, fullName: string) {
     try {
+      console.log('🚀 Starting signup process for:', email);
+      
+      // First check if user already exists
+      const { data: existingUser, error: checkError } = await supabase.auth.getUser();
+      if (existingUser?.user?.email === email) {
+        console.log('⚠️ User already signed in with this email');
+        return { user: existingUser.user, session: null };
+      }
+
+      // Clear any existing session first
+      await supabase.auth.signOut();
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -23,29 +35,49 @@ export class DatabaseService {
       });
 
       if (error) {
-        console.error('Supabase signup error:', error);
-        // Handle specific Supabase auth errors
-        if (error.message?.includes('User already registered') || error.message?.includes('user_already_exists')) {
-          throw new Error('This email is already registered. Please sign in instead.');
+        console.error('❌ Supabase signup error:', error);
+        
+        // Handle specific error cases
+        if (error.message?.includes('User already registered') || 
+            error.message?.includes('user_already_exists') ||
+            error.status === 422) {
+          console.log('🔄 User exists, attempting sign in instead...');
+          
+          // Try to sign in the existing user
+          const signInResult = await this.signIn(email, password);
+          return signInResult;
         }
+        
         throw error;
       }
 
-      // For instant signup without email confirmation
-      if (data.user && !data.user.email_confirmed_at) {
-        console.log('User created successfully without email confirmation');
+      console.log('✅ Signup successful:', data);
+
+      // If user was created but not automatically signed in, sign them in
+      if (data.user && !data.session) {
+        console.log('🔄 User created but not signed in, attempting sign in...');
+        try {
+          const signInResult = await this.signIn(email, password);
+          return signInResult;
+        } catch (signInError) {
+          console.log('⚠️ Auto sign-in failed, but user was created');
+          return data;
+        }
       }
 
       return data;
     } catch (error) {
-      console.error('Sign up error:', error);
+      console.error('❌ Sign up error:', error);
       throw error;
     }
   }
 
   async signIn(email: string, password: string) {
     try {
-      console.log('Attempting sign in for:', email);
+      console.log('🔑 Attempting sign in for:', email);
+      
+      // Clear any existing session first
+      await supabase.auth.signOut();
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -53,8 +85,9 @@ export class DatabaseService {
       });
 
       if (error) {
-        console.error('Supabase signin error:', error);
-        // Handle specific Supabase auth errors
+        console.error('❌ Supabase signin error:', error);
+        
+        // Handle specific error cases
         if (error.message?.includes('Invalid login credentials')) {
           throw new Error('Invalid email or password. Please check your credentials.');
         }
@@ -64,24 +97,26 @@ export class DatabaseService {
         if (error.message?.includes('Too many requests')) {
           throw new Error('Too many sign-in attempts. Please wait a moment before trying again.');
         }
+        
         throw error;
       }
       
-      console.log('Sign in successful:', data.user?.email);
+      console.log('✅ Sign in successful:', data.user?.email);
       return data;
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('❌ Sign in error:', error);
       throw error;
     }
   }
 
   async signOut() {
     try {
+      console.log('🚪 Signing out user...');
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      console.log('Sign out successful');
+      console.log('✅ Sign out successful');
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error('❌ Sign out error:', error);
       throw error;
     }
   }
@@ -92,7 +127,7 @@ export class DatabaseService {
       if (error) throw error;
       return user;
     } catch (error) {
-      console.error('Get current user error:', error);
+      console.error('❌ Get current user error:', error);
       return null;
     }
   }
@@ -100,26 +135,28 @@ export class DatabaseService {
   // Profile methods
   async createProfile(profile: Tables['profiles']['Insert']) {
     try {
-      console.log('Creating profile for user:', profile.id);
+      console.log('📝 Creating profile for user:', profile.id);
       
-      // First check if profile already exists using maybeSingle()
+      // First check if profile already exists
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', profile.id)
         .maybeSingle();
 
-      if (checkError) {
-        console.error('Error checking for existing profile:', checkError);
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('❌ Error checking for existing profile:', checkError);
         throw checkError;
       }
 
       if (existingProfile) {
-        console.log('Profile already exists, updating instead');
+        console.log('⚠️ Profile already exists, updating instead');
         return await this.updateProfile(profile.id, {
           full_name: profile.full_name,
           email: profile.email,
-          role: profile.role
+          role: profile.role,
+          phone: profile.phone,
+          location: profile.location
         });
       }
 
@@ -130,7 +167,21 @@ export class DatabaseService {
         .single();
 
       if (error) {
-        console.error('Profile creation error:', error);
+        console.error('❌ Profile creation error:', error);
+        
+        // Handle duplicate key error
+        if (error.code === '23505') {
+          console.log('⚠️ Profile already exists (duplicate key), fetching existing profile');
+          const { data: existingData, error: fetchError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', profile.id)
+            .single();
+          
+          if (fetchError) throw fetchError;
+          return existingData;
+        }
+        
         throw error;
       }
       
@@ -144,26 +195,36 @@ export class DatabaseService {
 
   async getProfile(userId: string): Promise<Tables['profiles']['Row'] | null> {
     try {
+      console.log('🔍 Fetching profile for user:', userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Error fetching profile:', error);
         throw error;
       }
       
+      if (!data) {
+        console.log('⚠️ No profile found for user:', userId);
+        return null;
+      }
+      
+      console.log('✅ Profile found:', data);
       return data;
     } catch (error) {
-      console.error('Get profile error:', error);
+      console.error('❌ Get profile error:', error);
       return null;
     }
   }
 
   async updateProfile(userId: string, updates: Tables['profiles']['Update']) {
     try {
+      console.log('📝 Updating profile for user:', userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -171,10 +232,15 @@ export class DatabaseService {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Profile update error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Profile updated successfully:', data);
       return data;
     } catch (error) {
-      console.error('Update profile error:', error);
+      console.error('❌ Update profile error:', error);
       throw error;
     }
   }
@@ -201,7 +267,7 @@ export class DatabaseService {
       
       // Test connection first
       const { data: testData, error: testError } = await supabase
-        .from('service_providers')
+        .from('service_categories')
         .select('count')
         .limit(1);
       

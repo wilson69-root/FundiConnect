@@ -36,35 +36,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       if (mode === 'signup') {
-        if (formData.password !== formData.confirmPassword) {
-          throw new Error('Passwords do not match');
+        // Validation for signup
+        if (!formData.fullName.trim()) {
+          throw new Error('Full name is required');
+        }
+        if (!formData.email.trim()) {
+          throw new Error('Email is required');
+        }
+        if (!formData.password) {
+          throw new Error('Password is required');
         }
         if (formData.password.length < 6) {
           throw new Error('Password must be at least 6 characters');
         }
+        if (formData.password !== formData.confirmPassword) {
+          throw new Error('Passwords do not match');
+        }
         
-        console.log('Starting signup process...');
-        await signUp(formData.email, formData.password, formData.fullName);
+        console.log('🚀 Starting signup process...');
+        await signUp(formData.email.trim(), formData.password, formData.fullName.trim());
         
-        // Close modal on successful signup (user is now signed in)
-        console.log('Signup successful, closing modal');
+        console.log('✅ Signup successful, closing modal');
         onClose();
         
       } else {
-        console.log('Starting signin process...');
-        await signIn(formData.email, formData.password);
+        // Validation for signin
+        if (!formData.email.trim()) {
+          throw new Error('Email is required');
+        }
+        if (!formData.password) {
+          throw new Error('Password is required');
+        }
         
-        // Close modal on successful signin
-        console.log('Signin successful, closing modal');
+        console.log('🔑 Starting signin process...');
+        await signIn(formData.email.trim(), formData.password);
+        
+        console.log('✅ Signin successful, closing modal');
         onClose();
       }
     } catch (err: any) {
-      console.error('Auth error:', err);
+      console.error('❌ Auth error:', err);
       
       // Handle specific error cases
-      if (err.message?.includes('User already registered') || err.message?.includes('user_already_exists')) {
+      if (err.message?.includes('User already registered') || 
+          err.message?.includes('user_already_exists')) {
         setError('This email is already registered. Please sign in instead.');
-        // Suggest switching to sign in mode
+        // Auto-switch to sign in mode after a delay
         setTimeout(() => {
           if (mode === 'signup') {
             setMode('signin');
@@ -72,7 +89,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             setError('');
           }
         }, 3000);
-      } else if (err.message?.includes('Invalid login credentials')) {
+      } else if (err.message?.includes('Invalid login credentials') || 
+                 err.message?.includes('Invalid email or password')) {
         setError('Invalid email or password. Please check your credentials and try again.');
       } else if (err.message?.includes('Email not confirmed')) {
         setError('Please check your email and click the confirmation link before signing in.');
@@ -136,14 +154,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {mode === 'signup' && (
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="auth-full-name" className="block text-sm font-medium text-gray-700 mb-2">
                 Full Name
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  id="fullName"
+                  id="auth-full-name"
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleInputChange}
@@ -158,14 +176,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-2">
               Email Address
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="email"
-                id="email"
+                id="auth-email"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
@@ -179,14 +197,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="auth-password" className="block text-sm font-medium text-gray-700 mb-2">
               Password
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type={showPassword ? 'text' : 'password'}
-                id="password"
+                id="auth-password"
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
@@ -211,14 +229,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {mode === 'signup' && (
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="auth-confirm-password" className="block text-sm font-medium text-gray-700 mb-2">
                 Confirm Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  id="confirmPassword"
+                  id="auth-confirm-password"
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}

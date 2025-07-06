@@ -23,12 +23,14 @@ export function useAuth() {
       try {
         // Check if Supabase is configured first
         if (!isSupabaseConfigured) {
-          console.warn('Supabase not configured. Running in offline mode.');
+          console.warn('⚠️ Supabase not configured. Running in offline mode.');
           if (mounted) {
             setLoading(false);
           }
           return;
         }
+
+        console.log('🔄 Initializing authentication...');
 
         // Try to get session with timeout
         let session;
@@ -38,7 +40,7 @@ export function useAuth() {
           const result = await Promise.race([
             supabase.auth.getSession(),
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Auth timeout - please check your internet connection')), 8000)
+              setTimeout(() => reject(new Error('Auth timeout - please check your internet connection')), 10000)
             )
           ]);
 
@@ -49,7 +51,7 @@ export function useAuth() {
             throw new Error('Invalid response from Supabase');
           }
         } catch (e) {
-          console.warn('Supabase auth failed:', e instanceof Error ? e.message : 'Unknown error');
+          console.warn('⚠️ Supabase auth failed:', e instanceof Error ? e.message : 'Unknown error');
           
           if (mounted) {
             setLoading(false);
@@ -58,7 +60,7 @@ export function useAuth() {
         }
 
         if (error) {
-          console.error('Auth initialization error:', error);
+          console.error('❌ Auth initialization error:', error);
           if (mounted) {
             setLoading(false);
           }
@@ -66,12 +68,16 @@ export function useAuth() {
         }
 
         if (session?.user) {
+          console.log('✅ Found existing session for:', session.user.email);
           await loadUserProfile(session.user);
-        } else if (mounted) {
-          setLoading(false);
+        } else {
+          console.log('ℹ️ No existing session found');
+          if (mounted) {
+            setLoading(false);
+          }
         }
       } catch (error) {
-        console.error('Auth initialization failed:', error);
+        console.error('❌ Auth initialization failed:', error);
         if (mounted) {
           setLoading(false);
         }
@@ -89,15 +95,27 @@ export function useAuth() {
           if (!mounted) return;
 
           try {
-            console.log('Auth state change:', event, session?.user?.email);
-            if (session?.user) {
+            console.log('🔄 Auth state change:', event, session?.user?.email);
+            
+            if (event === 'SIGNED_IN' && session?.user) {
+              console.log('✅ User signed in:', session.user.email);
               await loadUserProfile(session.user);
-            } else {
+            } else if (event === 'SIGNED_OUT') {
+              console.log('👋 User signed out');
               setUser(null);
               setLoading(false);
+            } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+              console.log('🔄 Token refreshed for:', session.user.email);
+              await loadUserProfile(session.user);
+            } else {
+              console.log('ℹ️ Auth event:', event);
+              if (!session?.user) {
+                setUser(null);
+                setLoading(false);
+              }
             }
           } catch (error) {
-            console.error('Auth state change error:', error);
+            console.error('❌ Auth state change error:', error);
             if (mounted) {
               setLoading(false);
             }
@@ -106,7 +124,7 @@ export function useAuth() {
         
         subscription = data.subscription;
       } catch (error) {
-        console.error('Failed to set up auth listener:', error);
+        console.error('❌ Failed to set up auth listener:', error);
       }
     }
 
@@ -120,11 +138,11 @@ export function useAuth() {
 
   const loadUserProfile = async (authUser: User) => {
     try {
-      console.log('Loading profile for user:', authUser.email);
+      console.log('📋 Loading profile for user:', authUser.email);
       
       // Check if database service is available
       if (!isSupabaseConfigured) {
-        console.warn('Database not available, using basic profile');
+        console.warn('⚠️ Database not available, using basic profile');
         setUser({
           ...authUser,
           profile: {
@@ -139,7 +157,7 @@ export function useAuth() {
       const profile = await databaseService.getProfile(authUser.id);
 
       if (!profile) {
-        console.log('No profile found for user, creating one...');
+        console.log('⚠️ No profile found for user, creating one...');
         try {
           const newProfile = await databaseService.createProfile({
             id: authUser.id,
@@ -147,7 +165,7 @@ export function useAuth() {
             full_name: authUser.user_metadata?.full_name || authUser.email || '',
             role: 'customer'
           });
-          console.log('Profile created successfully:', newProfile);
+          console.log('✅ Profile created successfully:', newProfile);
           setUser({
             ...authUser,
             profile: {
@@ -158,7 +176,7 @@ export function useAuth() {
             }
           });
         } catch (createError) {
-          console.error('Error creating profile:', createError);
+          console.error('❌ Error creating profile:', createError);
           setUser({
             ...authUser,
             profile: {
@@ -168,7 +186,7 @@ export function useAuth() {
           });
         }
       } else {
-        console.log('Profile loaded:', profile);
+        console.log('✅ Profile loaded:', profile);
         setUser({
           ...authUser,
           profile: {
@@ -180,7 +198,7 @@ export function useAuth() {
         });
       }
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      console.error('❌ Error loading user profile:', error);
       setUser({
         ...authUser,
         profile: {
@@ -200,34 +218,16 @@ export function useAuth() {
 
     setLoading(true);
     try {
-      console.log('Signing up user:', email);
+      console.log('🚀 Starting signup process for:', email);
       const data = await databaseService.signUp(email, password, fullName);
-      console.log('Sign up successful:', data);
+      console.log('✅ Sign up completed:', data);
       
-      // For instant signup without email confirmation, the user should be signed in immediately
-      if (data.user && data.session) {
-        console.log('User signed up and signed in immediately');
-        await loadUserProfile(data.user);
-      } else if (data.user) {
-        console.log('User created, attempting automatic sign in...');
-        // Try to sign in immediately after signup
-        try {
-          const signInData = await databaseService.signIn(email, password);
-          if (signInData.user) {
-            await loadUserProfile(signInData.user);
-          }
-        } catch (signInError) {
-          console.log('Auto sign-in failed, user will need to sign in manually');
-          setLoading(false);
-        }
-      }
-      
+      // The auth state change listener will handle loading the profile
       return data;
     } catch (error) {
-      console.error('Sign up error:', error);
-      throw error;
-    } finally {
+      console.error('❌ Sign up error:', error);
       setLoading(false);
+      throw error;
     }
   };
 
@@ -238,38 +238,33 @@ export function useAuth() {
 
     setLoading(true);
     try {
-      console.log('Signing in user:', email);
+      console.log('🔑 Starting signin process for:', email);
       const data = await databaseService.signIn(email, password);
-      console.log('Sign in successful:', data);
+      console.log('✅ Sign in completed:', data);
       
-      // Profile will be loaded automatically by the auth state change listener
-      // But we can also load it here for immediate feedback
-      if (data.user) {
-        await loadUserProfile(data.user);
-      }
-      
+      // The auth state change listener will handle loading the profile
       return data;
     } catch (error) {
-      console.error('Sign in error:', error);
-      throw error;
-    } finally {
+      console.error('❌ Sign in error:', error);
       setLoading(false);
+      throw error;
     }
   };
 
   const signOut = async () => {
     if (!isSupabaseConfigured) {
-      console.warn('Sign out not available - Supabase not configured');
+      console.warn('⚠️ Sign out not available - Supabase not configured');
       return;
     }
 
     setLoading(true);
     try {
+      console.log('🚪 Starting signout process...');
       await databaseService.signOut();
-      setUser(null);
+      console.log('✅ Sign out completed');
+      // The auth state change listener will handle clearing the user
     } catch (error) {
-      console.error('Sign out error:', error);
-    } finally {
+      console.error('❌ Sign out error:', error);
       setLoading(false);
     }
   };
