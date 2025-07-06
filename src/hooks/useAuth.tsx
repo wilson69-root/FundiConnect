@@ -30,7 +30,7 @@ export function useAuth() {
           return;
         }
 
-        // Try to get session with shorter timeout and better error handling
+        // Try to get session with timeout
         let session;
         let error;
 
@@ -38,7 +38,7 @@ export function useAuth() {
           const result = await Promise.race([
             supabase.auth.getSession(),
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Connection timeout - Supabase may be unreachable')), 5000)
+              setTimeout(() => reject(new Error('Auth timeout - please check your internet connection')), 8000)
             )
           ]);
 
@@ -49,11 +49,7 @@ export function useAuth() {
             throw new Error('Invalid response from Supabase');
           }
         } catch (e) {
-          console.warn('Supabase connection failed:', e instanceof Error ? e.message : 'Unknown error');
-          console.warn('Running in offline mode. Please check:');
-          console.warn('1. Your internet connection');
-          console.warn('2. Supabase configuration in .env file');
-          console.warn('3. Supabase project status');
+          console.warn('Supabase auth failed:', e instanceof Error ? e.message : 'Unknown error');
           
           if (mounted) {
             setLoading(false);
@@ -136,13 +132,14 @@ export function useAuth() {
             role: 'customer'
           }
         });
+        setLoading(false);
         return;
       }
 
       const profile = await databaseService.getProfile(authUser.id);
 
       if (!profile) {
-        console.warn('No profile found for user, creating one...');
+        console.log('No profile found for user, creating one...');
         try {
           const newProfile = await databaseService.createProfile({
             id: authUser.id,
@@ -206,6 +203,25 @@ export function useAuth() {
       console.log('Signing up user:', email);
       const data = await databaseService.signUp(email, password, fullName);
       console.log('Sign up successful:', data);
+      
+      // For instant signup without email confirmation, the user should be signed in immediately
+      if (data.user && data.session) {
+        console.log('User signed up and signed in immediately');
+        await loadUserProfile(data.user);
+      } else if (data.user) {
+        console.log('User created, attempting automatic sign in...');
+        // Try to sign in immediately after signup
+        try {
+          const signInData = await databaseService.signIn(email, password);
+          if (signInData.user) {
+            await loadUserProfile(signInData.user);
+          }
+        } catch (signInError) {
+          console.log('Auto sign-in failed, user will need to sign in manually');
+          setLoading(false);
+        }
+      }
+      
       return data;
     } catch (error) {
       console.error('Sign up error:', error);
@@ -225,6 +241,13 @@ export function useAuth() {
       console.log('Signing in user:', email);
       const data = await databaseService.signIn(email, password);
       console.log('Sign in successful:', data);
+      
+      // Profile will be loaded automatically by the auth state change listener
+      // But we can also load it here for immediate feedback
+      if (data.user) {
+        await loadUserProfile(data.user);
+      }
+      
       return data;
     } catch (error) {
       console.error('Sign in error:', error);
@@ -243,6 +266,7 @@ export function useAuth() {
     setLoading(true);
     try {
       await databaseService.signOut();
+      setUser(null);
     } catch (error) {
       console.error('Sign out error:', error);
     } finally {

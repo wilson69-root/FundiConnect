@@ -17,17 +17,23 @@ export class DatabaseService {
           data: {
             full_name: fullName,
           },
-          // Remove email confirmation requirement
+          // Disable email confirmation for instant signup
           emailRedirectTo: undefined
         },
       });
 
       if (error) {
+        console.error('Supabase signup error:', error);
         // Handle specific Supabase auth errors
         if (error.message?.includes('User already registered') || error.message?.includes('user_already_exists')) {
           throw new Error('This email is already registered. Please sign in instead.');
         }
         throw error;
+      }
+
+      // For instant signup without email confirmation
+      if (data.user && !data.user.email_confirmed_at) {
+        console.log('User created successfully without email confirmation');
       }
 
       return data;
@@ -39,12 +45,15 @@ export class DatabaseService {
 
   async signIn(email: string, password: string) {
     try {
+      console.log('Attempting sign in for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error('Supabase signin error:', error);
         // Handle specific Supabase auth errors
         if (error.message?.includes('Invalid login credentials')) {
           throw new Error('Invalid email or password. Please check your credentials.');
@@ -52,9 +61,13 @@ export class DatabaseService {
         if (error.message?.includes('Email not confirmed')) {
           throw new Error('Please check your email and click the confirmation link.');
         }
+        if (error.message?.includes('Too many requests')) {
+          throw new Error('Too many sign-in attempts. Please wait a moment before trying again.');
+        }
         throw error;
       }
       
+      console.log('Sign in successful:', data.user?.email);
       return data;
     } catch (error) {
       console.error('Sign in error:', error);
@@ -63,18 +76,32 @@ export class DatabaseService {
   }
 
   async signOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      console.log('Sign out successful');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      throw error;
+    }
   }
 
   async getCurrentUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return user;
+    } catch (error) {
+      console.error('Get current user error:', error);
+      return null;
+    }
   }
 
   // Profile methods
   async createProfile(profile: Tables['profiles']['Insert']) {
     try {
+      console.log('Creating profile for user:', profile.id);
+      
       // First check if profile already exists using maybeSingle()
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
@@ -116,30 +143,40 @@ export class DatabaseService {
   }
 
   async getProfile(userId: string): Promise<Tables['profiles']['Row'] | null> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-    if (error) {
-      console.error('Error fetching profile:', error);
-      throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Get profile error:', error);
+      return null;
     }
-    
-    return data;
   }
 
   async updateProfile(userId: string, updates: Tables['profiles']['Update']) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', userId)
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', userId)
+        .select()
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
   }
 
   // Service categories

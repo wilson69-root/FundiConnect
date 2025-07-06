@@ -43,20 +43,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           throw new Error('Password must be at least 6 characters');
         }
         
+        console.log('Starting signup process...');
         await signUp(formData.email, formData.password, formData.fullName);
         
-        // Show success message for signup
-        setError('Account created successfully! You can now sign in.');
-        
-        // Switch to sign in mode after successful signup
-        setTimeout(() => {
-          setMode('signin');
-          setError('');
-          setFormData(prev => ({ ...prev, password: '', confirmPassword: '', fullName: '' }));
-        }, 2000);
+        // Close modal on successful signup (user is now signed in)
+        console.log('Signup successful, closing modal');
+        onClose();
         
       } else {
+        console.log('Starting signin process...');
         await signIn(formData.email, formData.password);
+        
+        // Close modal on successful signin
+        console.log('Signin successful, closing modal');
         onClose();
       }
     } catch (err: any) {
@@ -64,12 +63,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       
       // Handle specific error cases
       if (err.message?.includes('User already registered') || err.message?.includes('user_already_exists')) {
-        setError('This email is already registered. Please sign in instead or use a different email.');
+        setError('This email is already registered. Please sign in instead.');
         // Suggest switching to sign in mode
         setTimeout(() => {
           if (mode === 'signup') {
             setMode('signin');
             setFormData(prev => ({ ...prev, password: '', confirmPassword: '', fullName: '' }));
+            setError('');
           }
         }, 3000);
       } else if (err.message?.includes('Invalid login credentials')) {
@@ -120,6 +120,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <X size={20} />
           </button>
         </div>
+
+        {/* Instant Access Notice for Signup */}
+        {mode === 'signup' && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+            <div className="text-green-800 text-sm">
+              <strong>Instant Access!</strong> No email confirmation required - start using FundiConnect immediately after signup.
+            </div>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -212,11 +221,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
 
           {error && (
-            <div className={`p-3 rounded-lg text-sm ${
-              error.includes('successfully') || error.includes('Check your email')
-                ? 'bg-green-50 text-green-700 border border-green-200'
-                : 'bg-red-50 text-red-700 border border-red-200'
-            }`}>
+            <div className="p-3 rounded-lg text-sm bg-red-50 text-red-700 border border-red-200">
               {error}
             </div>
           )}
@@ -234,7 +239,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </span>
               </>
             ) : (
-              <span>{mode === 'signin' ? 'Sign In' : 'Create Account'}</span>
+              <span>{mode === 'signin' ? 'Sign In' : 'Create Account & Start'}</span>
             )}
           </button>
         </form>
