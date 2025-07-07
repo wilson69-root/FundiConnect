@@ -40,7 +40,7 @@ export function useAuth() {
           const result = await Promise.race([
             supabase.auth.getSession(),
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Auth timeout - please check your internet connection')), 10000)
+              setTimeout(() => reject(new Error('Auth timeout - please check your internet connection')), 30000)
             )
           ]);
 
