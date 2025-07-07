@@ -51,7 +51,14 @@ export function useAuth() {
             throw new Error('Invalid response from Supabase');
           }
         } catch (e) {
-          console.warn('⚠️ Supabase auth failed:', e instanceof Error ? e.message : 'Unknown error');
+          console.warn('⚠️ Supabase auth failed - Full error details:', e);
+          console.warn('⚠️ Error type:', typeof e);
+          console.warn('⚠️ Error constructor:', e?.constructor?.name);
+          if (e instanceof Error) {
+            console.warn('⚠️ Error message:', e.message);
+            console.warn('⚠️ Error stack:', e.stack);
+          }
+          console.warn('⚠️ Error properties:', Object.getOwnPropertyNames(e));
           
           if (mounted) {
             setLoading(false);
@@ -60,7 +67,10 @@ export function useAuth() {
         }
 
         if (error) {
-          console.error('❌ Auth initialization error:', error);
+          console.error('❌ Auth initialization error - Full error details:', error);
+          console.error('❌ Error type:', typeof error);
+          console.error('❌ Error constructor:', error?.constructor?.name);
+          console.error('❌ Error properties:', Object.getOwnPropertyNames(error));
           if (mounted) {
             setLoading(false);
           }
@@ -77,7 +87,14 @@ export function useAuth() {
           }
         }
       } catch (error) {
-        console.error('❌ Auth initialization failed:', error);
+        console.error('❌ Auth initialization failed - Full error details:', error);
+        console.error('❌ Error type:', typeof error);
+        console.error('❌ Error constructor:', error?.constructor?.name);
+        if (error instanceof Error) {
+          console.error('❌ Error message:', error.message);
+          console.error('❌ Error stack:', error.stack);
+        }
+        console.error('❌ Error properties:', Object.getOwnPropertyNames(error));
         if (mounted) {
           setLoading(false);
         }
@@ -115,7 +132,14 @@ export function useAuth() {
               }
             }
           } catch (error) {
-            console.error('❌ Auth state change error:', error);
+            console.error('❌ Auth state change error - Full error details:', error);
+            console.error('❌ Error type:', typeof error);
+            console.error('❌ Error constructor:', error?.constructor?.name);
+            if (error instanceof Error) {
+              console.error('❌ Error message:', error.message);
+              console.error('❌ Error stack:', error.stack);
+            }
+            console.error('❌ Error properties:', Object.getOwnPropertyNames(error));
             if (mounted) {
               setLoading(false);
             }
@@ -124,7 +148,14 @@ export function useAuth() {
         
         subscription = data.subscription;
       } catch (error) {
-        console.error('❌ Failed to set up auth listener:', error);
+        console.error('❌ Failed to set up auth listener - Full error details:', error);
+        console.error('❌ Error type:', typeof error);
+        console.error('❌ Error constructor:', error?.constructor?.name);
+        if (error instanceof Error) {
+          console.error('❌ Error message:', error.message);
+          console.error('❌ Error stack:', error.stack);
+        }
+        console.error('❌ Error properties:', Object.getOwnPropertyNames(error));
       }
     }
 
@@ -176,7 +207,14 @@ export function useAuth() {
             }
           });
         } catch (createError) {
-          console.error('❌ Error creating profile:', createError);
+          console.error('❌ Error creating profile - Full error details:', createError);
+          console.error('❌ Error type:', typeof createError);
+          console.error('❌ Error constructor:', createError?.constructor?.name);
+          if (createError instanceof Error) {
+            console.error('❌ Error message:', createError.message);
+            console.error('❌ Error stack:', createError.stack);
+          }
+          console.error('❌ Error properties:', Object.getOwnPropertyNames(createError));
           setUser({
             ...authUser,
             profile: {
@@ -198,7 +236,14 @@ export function useAuth() {
         });
       }
     } catch (error) {
-      console.error('❌ Error loading user profile:', error);
+      console.error('❌ Error loading user profile - Full error details:', error);
+      console.error('❌ Error type:', typeof error);
+      console.error('❌ Error constructor:', error?.constructor?.name);
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+      }
+      console.error('❌ Error properties:', Object.getOwnPropertyNames(error));
       setUser({
         ...authUser,
         profile: {
@@ -225,7 +270,14 @@ export function useAuth() {
       // The auth state change listener will handle loading the profile
       return data;
     } catch (error) {
-      console.error('❌ Sign up error:', error);
+      console.error('❌ Sign up error - Full error details:', error);
+      console.error('❌ Error type:', typeof error);
+      console.error('❌ Error constructor:', error?.constructor?.name);
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+      }
+      console.error('❌ Error properties:', Object.getOwnPropertyNames(error));
       setLoading(false);
       throw error;
     }
@@ -245,7 +297,14 @@ export function useAuth() {
       // The auth state change listener will handle loading the profile
       return data;
     } catch (error) {
-      console.error('❌ Sign in error:', error);
+      console.error('❌ Sign in error - Full error details:', error);
+      console.error('❌ Error type:', typeof error);
+      console.error('❌ Error constructor:', error?.constructor?.name);
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+      }
+      console.error('❌ Error properties:', Object.getOwnPropertyNames(error));
       setLoading(false);
       throw error;
     }
@@ -264,7 +323,14 @@ export function useAuth() {
       console.log('✅ Sign out completed');
       // The auth state change listener will handle clearing the user
     } catch (error) {
-      console.error('❌ Sign out error:', error);
+      console.error('❌ Sign out error - Full error details:', error);
+      console.error('❌ Error type:', typeof error);
+      console.error('❌ Error constructor:', error?.constructor?.name);
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+      }
+      console.error('❌ Error properties:', Object.getOwnPropertyNames(error));
       setLoading(false);
     }
   };
